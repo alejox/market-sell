@@ -64,7 +64,7 @@ function makeSnapshot(overrides: Partial<ResultSnapshot> = {}): ResultSnapshot {
     proposalId: "proposal-1",
     proposalThreadId: "brief-1",
     period: { from: "2026-01-01", to: "2026-01-31" },
-    metrics: [{ metric: "Alcance", value: 1000, unit: "personas" }],
+    metrics: [{ name: "Alcance", value: 1000, unit: "personas" }],
     notes: "Primer mes de campaña.",
     source: "manual_owner_entry",
     recordedBy: "Owner",

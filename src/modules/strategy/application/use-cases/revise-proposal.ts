@@ -93,7 +93,9 @@ export function createReviseProposal(deps: ReviseProposalDependencies) {
       return err({ kind: "unavailable" });
     }
 
-    const resultSnapshots = await deps.resultSnapshots.listByProposal(scope, current.id);
+    // Every result recorded anywhere in this thread (any prior version), not just against this
+    // exact version id — the learning loop should see everything observed for this audience so far.
+    const resultSnapshots = await deps.resultSnapshots.listByThread(scope, current.proposalThreadId);
 
     const prompt = buildProposalPrompt({
       brand: { name: brand.name, website: brand.website, voice: brand.voice, constraints: brand.constraints },

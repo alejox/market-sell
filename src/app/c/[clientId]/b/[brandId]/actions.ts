@@ -303,3 +303,50 @@ export async function archiveProposalAction(
   revalidatePath(`/c/${scope.clientId}/b/${scope.brandId}/proposals/${proposalId}`);
   return { status: "success", message: "Propuesta archivada." };
 }
+
+// ---------------------------------------------------------------------------
+// Learning loop
+// ---------------------------------------------------------------------------
+
+const metricSchema = z.object({
+  name: z.string().min(1),
+  value: z.union([z.number(), z.string()]),
+  unit: z.string().optional(),
+});
+
+export async function recordResultSnapshotAction(
+  scope: { clientId: string; brandId: string },
+  proposalId: string,
+  _prevState: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  return guardFormInput(async () => {
+    const periodFrom = String(formData.get("periodFrom") ?? "");
+    const periodTo = String(formData.get("periodTo") ?? "");
+    const notes = String(formData.get("notes") ?? "");
+    const source = z.enum(["manual_owner_entry", "manual_meta_export", "manual_other"]).parse(formData.get("source"));
+    const metrics = parseJsonField(formData, "metricsJson", z.array(metricSchema)).filter((m) => m.name.trim().length > 0);
+
+    if (!periodFrom || !periodTo) {
+      return { status: "error", message: "Indique el período (inicio y fin) del resultado." };
+    }
+
+    const result = await container.recordResultSnapshot({
+      scope,
+      proposalId,
+      period: { from: periodFrom, to: periodTo },
+      metrics,
+      notes,
+      source,
+      recordedBy: container.currentOwnerName(),
+    });
+
+    if (!result.ok) {
+      return { status: "error", message: "No se encontró la propuesta asociada." };
+    }
+
+    revalidatePath(`/c/${scope.clientId}/b/${scope.brandId}`);
+    revalidatePath(`/c/${scope.clientId}/b/${scope.brandId}/proposals/${proposalId}`);
+    return { status: "success", message: "Resultado registrado manualmente." };
+  });
+}

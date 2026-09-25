@@ -105,7 +105,7 @@ test("includes result snapshots labeled as owner-entered, never as live analytic
           proposalId: "proposal-1",
           proposalThreadId: "thread-1",
           period: { from: "2026-01-01", to: "2026-01-31" },
-          metrics: [{ metric: "alcance", value: 1200 }],
+          metrics: [{ name: "alcance", value: 1200 }],
           notes: "Reportado por el dueño.",
           source: "manual_owner_entry",
           recordedBy: "Owner",

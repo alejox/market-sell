@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ensureWorkspaceSeeded, repositories, listReviewHistory } from "@/server/container";
+import { ensureWorkspaceSeeded, repositories, listReviewHistory, listResultSnapshots } from "@/server/container";
 import { ClientBrandSelector, type ClientBrandOption } from "@/components/organisms/ClientBrandSelector";
 import { AudienceTabs } from "@/components/organisms/AudienceTabs";
 import { BrandBriefSection } from "@/components/organisms/BrandBriefSection";
@@ -8,7 +8,14 @@ import { AudienceSection } from "@/components/organisms/AudienceSection";
 import { CampaignBriefSection } from "@/components/organisms/CampaignBriefSection";
 import { ProposalThreadSection } from "@/components/organisms/ProposalThreadSection";
 import { ReviewHistoryTimeline } from "@/components/organisms/ReviewHistoryTimeline";
-import { updateBrandAction, updateAudienceAction, updateCampaignBriefAction, generateProposalAction } from "./actions";
+import { ResultSnapshotsSection } from "@/components/organisms/ResultSnapshotsSection";
+import {
+  updateBrandAction,
+  updateAudienceAction,
+  updateCampaignBriefAction,
+  generateProposalAction,
+  recordResultSnapshotAction,
+} from "./actions";
 
 export default async function WorkspacePage({
   params,
@@ -54,6 +61,8 @@ export default async function WorkspacePage({
   const brief = await repositories.briefs.getByAudience(scope, selectedAudience.id);
   const versions = brief ? await repositories.proposals.listByThread(scope, brief.id) : [];
   const reviewHistory = brief ? await listReviewHistory({ scope, proposalThreadId: brief.id }) : [];
+  const snapshots = brief ? await listResultSnapshots({ scope, proposalThreadId: brief.id }) : [];
+  const latestVersion = [...versions].sort((a, b) => b.version - a.version)[0] ?? null;
 
   return (
     <main className="mx-auto flex w-full max-w-4xl flex-col gap-6 px-4 py-6 sm:px-6">
@@ -90,6 +99,13 @@ export default async function WorkspacePage({
       )}
 
       {reviewHistory.length > 0 && <ReviewHistoryTimeline decisions={reviewHistory} />}
+
+      {latestVersion && (
+        <ResultSnapshotsSection
+          snapshots={snapshots}
+          recordResultSnapshotAction={recordResultSnapshotAction.bind(null, scope, latestVersion.id)}
+        />
+      )}
     </main>
   );
 }

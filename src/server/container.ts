@@ -57,6 +57,14 @@ import {
   createListReviewHistory,
   type ListReviewHistoryInput,
 } from "@/modules/review/application/use-cases/list-review-history";
+import {
+  createRecordResultSnapshot,
+  type RecordResultSnapshotInput,
+} from "@/modules/results/application/use-cases/record-result-snapshot";
+import {
+  createListResultSnapshots,
+  type ListResultSnapshotsInput,
+} from "@/modules/results/application/use-cases/list-result-snapshots";
 
 const clients = new JsonClientRepository(collectionFilePath("clients"));
 const brands = new JsonBrandRepository(collectionFilePath("brands"));
@@ -151,6 +159,9 @@ const approveProposalUseCase = createApproveProposal({ proposals, reviewDecision
 const archiveProposalUseCase = createArchiveProposal({ proposals, clock });
 const listReviewHistoryUseCase = createListReviewHistory({ reviewDecisions });
 
+const recordResultSnapshotUseCase = createRecordResultSnapshot({ proposals, resultSnapshots, clock, ids });
+const listResultSnapshotsUseCase = createListResultSnapshots({ resultSnapshots });
+
 /** The owner identity Server Actions should record as the approver / a manual result's `recordedBy`. */
 export function currentOwnerName(): string {
   return OWNER_NAME;
@@ -202,4 +213,12 @@ export function archiveProposal(input: ArchiveProposalInput) {
 
 export function listReviewHistory(input: ListReviewHistoryInput) {
   return withSeed(() => listReviewHistoryUseCase(input));
+}
+
+export function recordResultSnapshot(input: RecordResultSnapshotInput) {
+  return withSeed(() => recordResultSnapshotUseCase(input));
+}
+
+export function listResultSnapshots(input: ListResultSnapshotsInput) {
+  return withSeed(() => listResultSnapshotsUseCase(input));
 }

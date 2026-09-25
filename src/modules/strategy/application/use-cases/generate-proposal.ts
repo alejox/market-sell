@@ -81,7 +81,9 @@ export function createGenerateProposal(deps: GenerateProposalDependencies) {
     const existingVersions = await deps.proposals.listByThread(scope, proposalThreadId);
     const latestVersion = existingVersions.reduce((max, proposal) => Math.max(max, proposal.version), 0);
 
-    const resultSnapshots = await deps.resultSnapshots.list(scope);
+    // Scoped to this audience's thread only — a proposal for one audience must never learn from
+    // another audience's manually entered results, even though both share the same client/brand.
+    const resultSnapshots = await deps.resultSnapshots.listByThread(scope, proposalThreadId);
 
     const prompt = buildProposalPrompt({
       brand: { name: brand.name, website: brand.website, voice: brand.voice, constraints: brand.constraints },
