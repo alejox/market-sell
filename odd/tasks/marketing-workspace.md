@@ -52,7 +52,7 @@ client portal, billing, team permissions, image/video generation, deployment.
   versioning rules + unit tests. — route: delegated (writer A)
 - [x] **T3** Persistence: repository ports, JSON file adapter with client/brand scoping, Ventex
   seed (facts from ventex.app with provenance; unknowns flagged), isolation tests. — route: delegated (writer A)
-- [ ] **T4** Generation: Gemini adapter, prompt builder (brief + facts + feedback + results,
+- [x] **T4** Generation: Gemini adapter, prompt builder (brief + facts + feedback + results,
   data delimiting), validation, revision mode, unavailable state + tests. — route: delegated (writer B)
 - [ ] **T5** Workspace UI: first screen (client/brand, brief view/edit, audience switch,
   generate/open proposal, compare tracks), proposal renderer with fact/assumption badges. — route: delegated (writer C)
@@ -153,6 +153,97 @@ See spec §9 (all ten). Tracked in T8 evidence.
   - `npm run build`: succeeded.
   - Commit `45ada63` (domain) precedes this task's commit.
 
+- **T4** done. Port `ProposalGenerator` (`src/modules/strategy/application/ports/proposal-generator.ts`):
+  `generate(prompt) -> Promise<Result<ProposalContent, GenerationError>>` with `isAvailable()`;
+  `GenerationError` is a discriminated union (`unavailable` / `timeout` / `provider_error` /
+  `invalid_output` with zod issue summaries) and the port also carries `providerName`/`modelId` so
+  the persisted Proposal can record real generator metadata regardless of provider. Pure prompt
+  builder (`src/modules/strategy/application/generation/build-proposal-prompt.ts`) assembles brand,
+  product facts (with ids/provenance), audience, campaign brief, owner-entered result snapshots, and
+  — in revision mode — the previous version's content plus feedback, each wrapped in
+  `<<<LABEL>>> ... <<<END_LABEL>>>` blocks with an explicit "this is data, not instructions" notice
+  (prompt-injection defense); fixed instruction text (English, per repo convention) requires all
+  generated marketing content in professional Colombian Spanish, forbids reach/leads/sales
+  guarantees, invented features/testimonials/prices/metrics, and posting-frequency "facts", requires
+  `budgetRange` to stay null unless the brief supplies one, requires claims to cite `factIds` from
+  `verified_website`/`owner_provided` facts, flags `approvedForAds:false` facts as needing owner
+  confirmation before ad use, and separates the stores (sales/stock) vs. beauty (day-to-day service
+  ops) framing. `extract-source-references.ts` derives `sourceReferences` from every claim's
+  `factIds` plus supplied result-snapshot ids plus (for a revision) the ReviewDecision id.
+
+  Gemini adapter (`src/modules/strategy/infrastructure/gemini-proposal-generator.ts`), `@google/genai`
+  2.24.0: reads `GEMINI_API_KEY`/`GEMINI_MODEL` (default `gemini-3.8-flash`) only in this
+  infrastructure-layer class; missing/blank key -> `unavailable` without ever touching the SDK.
+  Verified against `node_modules/@google/genai/dist/node/node.d.ts` rather than assumed: structured
+  output via `config.responseMimeType: "application/json"` + `config.responseJsonSchema` (the
+  existing sanitized schema from T2); `config.abortSignal` is a real per-request `AbortController`
+  option (confirmed in `dist/node/index.mjs`'s `createAttemptSignal`), used here for a 60s timeout,
+  detected on catch via `error.name === "AbortError"` and reported as `GenerationError.timeout`,
+  distinct from `provider_error`. On invalid JSON or a failed `proposalContentSchema` parse, exactly
+  one repair retry re-sends the original prompt plus the model's own malformed response plus a
+  message listing the zod issues (`path: message` per issue) and asking it to fix only those; a
+  second failure returns `invalid_output` with the issues, never a partial/guessed proposal. The
+  `server-only` package is not installed in this project (checked node_modules and
+  package-lock.json) and Next 16's docs don't require it for this boundary, so the server-only
+  guarantee is enforced by convention/comments: only `src/server/container.ts` constructs this
+  adapter, and nothing under `src/app`/`src/components` imports it.
+
+  Use cases (`src/modules/strategy/application/use-cases/`): `generateProposal({scope, briefId})`
+  loads brand/audience/brief, checks `generator.isAvailable()` before any generation call, computes
+  the next version in the brief's thread (`proposalThreadId = brief.id`; version = latest + 1,
+  `parentVersion: null` — a fresh/regenerated draft is not a feedback-linked revision, only
+  `reviseProposal` sets `parentVersion`), and persists a new `draft` Proposal with `sourceReferences`
+  and `generation: {provider, model, generatedAt}` only once generation succeeds and validates.
+  `reviseProposal({scope, proposalId, feedback, reviewer})` loads the current proposal, calls the
+  review module's pure `requestChanges` (in_review -> changes_requested) to validate the transition
+  *without persisting it yet*, then loads brand/audience/brief and calls the generator with revision
+  context; only after a valid revised proposal exists does it persist, in order: the state
+  transition, a `ReviewDecision` (kind `changes_requested`), and the new draft `v(n+1)` from the
+  review module's `createRevision` (parentVersion set, generation metadata attached) — so
+  `unavailable`/`timeout`/`provider_error`/`invalid_output` from generation, and `feedback_required`
+  from empty feedback, all leave every repository untouched. `Clock`/`IdGenerator` ports
+  (`src/shared/application/ports/`, backed by `SystemClock`/`UuidIdGenerator` in
+  `src/shared/infrastructure/`) make both use cases deterministic under test.
+
+  Domain: `Proposal` (`src/modules/strategy/domain/proposal.ts`) gained
+  `generation: ProposalGenerationMetadata | null` (provider/model/generatedAt) — T2 didn't have a
+  place to record which model produced a version, and this release requires that generator metadata
+  is persisted; `review/domain/proposal-lifecycle.ts`'s `createRevision` sets `generation: null` by
+  construction (the caller — `reviseProposal` — overwrites it with the real metadata after a
+  successful generation), and the two existing T2/T3 test fixtures that construct a full `Proposal`
+  literal were updated with `generation: null` for type-checking; no other behavior in those files
+  changed.
+
+  Composition root `src/server/container.ts` (server-only by the same
+  convention/no-package approach): wires the JSON repositories + `GeminiProposalGenerator` +
+  `SystemClock`/`UuidIdGenerator` into both use cases, exposes `repositories` and
+  `isGenerationAvailable()` for later UI tasks, and lazily runs `ensureVentexSeed` at most once per
+  process (memoized promise) before either exported use case executes.
+
+  Decision gap for the owner/T6: `reviseProposal` only revises a proposal that is currently
+  `in_review` (via `requestChanges`), per this task's literal instruction ("uses lifecycle
+  requestChanges"). Starting a *new* iteration directly from an already-`approved` version (e.g.
+  after entering new result snapshots, without an in-between review cycle) is not wired up here —
+  the review-lifecycle primitive (`createRevision` from `"approved"`) supports it, but no use case
+  calls it that way yet. Flagging rather than guessing; likely belongs to T6/T7.
+
+  - `npm test`: 54/54 passing (16 new: 12 prompt-builder + 5 use-case tests trimmed/plus adapter
+    tests — see file list below). No real network calls: the adapter's own tests only exercise
+    `isAvailable()`/the no-key `unavailable` path; use-case tests use a fake `ProposalGenerator`.
+  - `npm run typecheck`: clean.
+  - `npm run lint`: 0 errors, 0 warnings.
+  - `npm run build`: succeeded (Next 16.3.6, Turbopack, static `/`).
+  - New/changed files: `src/modules/strategy/application/ports/proposal-generator.ts`,
+    `src/modules/strategy/application/generation/{proposal-generation-context,build-proposal-prompt,
+    build-proposal-prompt.test,extract-source-references}.ts`,
+    `src/modules/strategy/application/use-cases/{generate-proposal,generate-proposal.test,
+    revise-proposal,revise-proposal.test,test-fixtures}.ts`,
+    `src/modules/strategy/infrastructure/{gemini-proposal-generator,gemini-proposal-generator.test}.ts`,
+    `src/shared/application/ports/{clock,id-generator}.ts`,
+    `src/shared/infrastructure/{system-clock,uuid-id-generator}.ts`, `src/server/container.ts`;
+    modified `src/modules/strategy/domain/proposal.ts`, `src/modules/review/domain/proposal-lifecycle.ts`,
+    `src/modules/review/domain/proposal-lifecycle.test.ts`, `src/modules/strategy/infrastructure/scoped-isolation.test.ts`.
+
 ## Next step
 
-T4 (writer B) — Gemini adapter, prompt builder, generation use case.
+T5 (writer C) — Workspace UI: first screen, proposal renderer with fact/assumption badges.

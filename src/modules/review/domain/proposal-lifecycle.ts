@@ -96,6 +96,7 @@ export function createRevision(
     state: "draft",
     content,
     sourceReferences,
+    generation: null,
     createdAt: now,
     updatedAt: now,
     submittedAt: null,
