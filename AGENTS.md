@@ -59,14 +59,32 @@ method takes a `{ clientId, brandId }` scope and the adapter must filter by
 it — a query for one brand must never return another brand's data, even
 inside the same client.
 
-## Persistence: JSON now, Supabase later
+## Persistence: Supabase in production, JSON for local dev
 
-The current adapter is a JSON file store under `DATA_DIR` (default `.data`,
-git-ignored), one file per collection, atomic writes (temp file + rename),
-one mutex per file. It exists entirely behind the application-layer
-repository ports. A future Supabase adapter (with RLS enforcing the same
-client/brand scope) implements the same ports — no port changes, no UI
-changes.
+Supabase Postgres is the production adapter (see
+`odd/tasks/supabase-production-persistence.md`): request-scoped SSR clients
+(`src/shared/infrastructure/supabase/`), one adapter per port under each
+module's `infrastructure`, and RLS
+(`supabase/migrations/20260925053019_workspace_schema.sql`) enforcing the
+same client/brand scope the adapters already filter by. `src/server/
+container.ts` selects it automatically whenever `SUPABASE_URL` and
+`SUPABASE_PUBLISHABLE_KEY` are set, via the pure decision in
+`src/server/repository-backend.ts`.
+
+The JSON file store under `DATA_DIR` (default `.data`, git-ignored, one file
+per collection, atomic writes, one mutex per file) is now a
+local-development-only fallback, used only when Supabase is not configured
+**and** the runtime is not production (Vercel, or `NODE_ENV=production`) —
+in a production runtime without Supabase configured, the composition root
+fails closed instead of silently falling back to local file writes, which
+are not available on Vercel's function filesystem. Both adapters exist
+entirely behind the same application-layer repository ports — no port
+changes, no UI changes.
+
+Seeding (`ensureVentexSeed`) and the `.data` -> Supabase importer
+(`npm run import:data`, see `scripts/import-data.ts`) write through
+`insertIfAbsent` rather than an upsert, so they are safe under concurrent
+serverless instances and never overwrite a row that already exists.
 
 ## Tailwind tokens
 
