@@ -58,7 +58,7 @@ client portal, billing, team permissions, image/video generation, deployment.
   generate/open proposal, compare tracks), proposal renderer with fact/assumption badges. — route: delegated (writer C)
 - [x] **T6** Review workflow: submit, approve (approver + timestamp + version), request changes
   → new draft, archive, history, Markdown export marking approval status. — route: delegated (writer C)
-- [ ] **T7** Learning loop: manual result snapshots UI + inclusion in next generation. — route: delegated (writer C)
+- [x] **T7** Learning loop: manual result snapshots UI + inclusion in next generation. — route: delegated (writer C)
 - [ ] **T8** Verification: lint, typecheck, tests, build, keyboard + mobile pass. — route: parent spot check
 
 ## Acceptance criteria
@@ -288,6 +288,8 @@ See spec §9 (all ten). Tracked in T8 evidence.
     were verified once against the final combined tree; per-task commits are still split by file
     ownership, see commit hashes below).
   - New files: see `git show --stat` on this commit; key ones listed above.
+  - Work-unit commit: `e28f526` (`feat(workspace): add owner workspace UI with brief editing and
+    proposal generation`).
 
 - **T6** done. New use cases (`src/modules/review/application/use-cases/`, all with tests):
   `submitForReview` (draft → in_review), `approveProposal` (in_review → approved; records a
@@ -333,8 +335,66 @@ See spec §9 (all ten). Tracked in T8 evidence.
   - `npm run typecheck`: clean.
   - `npm test`: passing (full count in T7 evidence — verified once against the final combined tree; see
     commit hashes below for the per-task split).
+  - Work-unit commit: `eb4729b` (`feat(review): add review workflow, approved-version iteration,
+    and export`).
+
+- **T7** done. Domain rename (`src/modules/results/domain/result-snapshot.ts`): `ResultMetric.metric` →
+  `.name` (matches the spec's `{name, value, unit}` shape for the dynamic metrics list) and `source`
+  widened from the single literal `"manual_owner_entry"` to `ResultSnapshotSource =
+  "manual_owner_entry" | "manual_meta_export" | "manual_other"` — every option is still a manual entry
+  (`RESULT_SOURCE_LABELS` in `src/components/labels.ts`: "Ingreso manual del propietario" / "Exportación de
+  Meta Business Suite (manual)" / "Otro"); the UI never uses the word "sincronizado". New use cases (with
+  tests): `recordResultSnapshot` (resolves `proposalThreadId` from the given proposal id, so a result
+  survives being tied to "this thread", not one exact version) and `listResultSnapshots`
+  (thread-scoped, oldest first).
+
+  Verified whether generation already included the latest snapshots and fixed two real scoping bugs found
+  in the process (not template placeholders — actual bugs from T4):
+  1. `generateProposal` was calling `resultSnapshots.list(scope)` — every snapshot for the whole
+     client+brand, i.e. a Stores proposal could pick up Salons' results and vice versa, since `Scope` is
+     only `{clientId, brandId}` and has no audience dimension.
+  2. `reviseProposal` was calling `resultSnapshots.listByProposal(scope, current.id)` — only the results
+     recorded against that *one exact proposal version*, missing anything recorded against an earlier or
+     later version in the same thread.
+  Fixed both by adding `listByThread(scope, proposalThreadId)` to `ResultSnapshotRepository` (port + both
+  adapters — landed in the T6 commit because `iterateFromApproved` needed it a task earlier) and switching
+  `generateProposal`/`reviseProposal` to call it with the thread id instead of the whole scope or one
+  proposal id. `extractSourceReferences` already included every supplied snapshot's id in
+  `sourceReferences` (verified via the existing revise-proposal test's assertion plus the new
+  iterate-from-approved test) — no changes needed there once the input list was correctly scoped.
+
+  UI: `ResultSnapshotForm` (client, dynamic metrics list via one hidden JSON field, `<input type="date">`
+  period, fixed source `<select>`, an explicit "se registra manualmente" notice) and
+  `ResultSnapshotsSection` (list + collapsed form, only rendered on the workspace page once at least one
+  proposal exists for the thread — recording a result needs a proposal id to resolve the thread from).
+
+  - `npm run lint`: 0 errors, 0 warnings.
+  - `npm run typecheck`: clean.
+  - `npm test`: **80/80 passing** (final combined tree, T2–T7).
+  - `npm run build`: succeeded (Next 16.3.6, Turbopack).
+  - Smoke test: `GEMINI_API_KEY= DATA_DIR=<temp dir> npm run dev -p <free port>`, `curl -sL /` → HTTP 200,
+    followed the `/` → `/c/client-ventex-owner/b/brand-ventex` redirect, response contains
+    `lang="es-CO"`, "Marca: Ventex", "Tiendas / comercio minorista", "Verificado en sitio web", "Generar
+    propuesta"; no Gemini call was triggered (GET only). Server stopped afterward.
+  - Work-unit commit: `73fbb32` (`feat(results): record manual campaign outcomes by audience thread`).
+    Focused tests: `npm test` 80/80; runtime smoke test as above. Rollback boundary: this commit's
+    result-entry UI/use cases and thread-scoped generation changes, without removing T5/T6.
+
+## Delivery note
+
+This branch (T5+T6+T7 combined, on top of T4's `9d48aae`) is **4,203 authored changed lines**
+(`git diff --shortstat 9d48aae..73fbb32`: 4,170 additions + 33 deletions), well past the ~400-line
+per-task advisory heuristic — expected here since the three tasks are tightly coupled (workspace UI,
+review workflow, and the learning loop all
+share the same route files and composition root) and were delivered as one coherent slice per the original
+task assignment. Per the constraints section, forecast > 400 authored lines means strategy `ask-on-risk`
+applies before any PR: **the delivery-strategy decision (stacked-to-main vs. feature-branch-chain, or a
+single PR) has not been made and no PR has been opened or requested.** All work is local commits on
+`feat/marketing-workspace`; push/PR remain the owner's decision.
 
 ## Next step
 
-T7 (writer C) — Learning loop: `recordResultSnapshot`/`listResultSnapshots`, results UI, verify/fix
-generation's snapshot scoping.
+T8 — Verification (already substantially covered above: lint/typecheck/test/build all clean, smoke test
+passed). Remaining for a full T8 pass: a manual keyboard-only and 375px-mobile walkthrough of the real
+browser UI (this session only verified server-rendered HTML via curl, not interactive keyboard/focus
+behavior), and the owner's decision on delivery strategy per the note above.
