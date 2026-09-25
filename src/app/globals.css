@@ -1,70 +1,102 @@
 @import "tailwindcss";
 
 :root {
-  --surface: #ffffff;
-  --on-surface: #171717;
-  --primary: #1d4ed8;
+  color-scheme: light;
+  --surface: #fffefd;
+  --surface-raised: #ffffff;
+  --on-surface: #17191c;
+  --primary: #17191c;
   --primary-on: #ffffff;
-  --muted: #f4f4f5;
-  --muted-on: #52525b;
-  --border: #e4e4e7;
-  --success: #15803d;
-  --warning: #b45309;
-  --danger: #b91c1c;
-  --info: #0369a1;
+  --muted: #f4f3f1;
+  --muted-on: #5b6067;
+  --border: #e8e6e3;
+  --accent: #fbe1d1;
+  --accent-on: #5d2a1a;
+  --success: #276246;
+  --warning: #865309;
+  --danger: #a33131;
+  --info: #365d70;
+  --font-ui: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-code: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }
 
 @theme inline {
   --color-surface: var(--surface);
+  --color-surface-raised: var(--surface-raised);
   --color-on-surface: var(--on-surface);
   --color-primary: var(--primary);
   --color-primary-on: var(--primary-on);
   --color-muted: var(--muted);
   --color-muted-on: var(--muted-on);
   --color-border: var(--border);
+  --color-accent: var(--accent);
+  --color-accent-on: var(--accent-on);
   --color-success: var(--success);
   --color-warning: var(--warning);
   --color-danger: var(--danger);
   --color-info: var(--info);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-ui);
+  --font-serif: Georgia, "Times New Roman", serif;
+  --font-mono: var(--font-code);
+}
+
+@layer base {
+  body {
+    background: var(--surface);
+    color: var(--on-surface);
+    font-family: var(--font-ui);
+  }
+
+  h1,
+  h2 {
+    font-family: Georgia, "Times New Roman", serif;
+    font-weight: 400;
+    letter-spacing: -0.015em;
+  }
+
+  :where(a, button, input, textarea, select, summary):focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 3px;
+  }
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --surface: #0a0a0a;
-    --on-surface: #ededed;
-    --primary: #60a5fa;
-    --primary-on: #0a0a0a;
-    --muted: #18181b;
-    --muted-on: #a1a1aa;
-    --border: #27272a;
-    --success: #4ade80;
-    --warning: #fbbf24;
-    --danger: #f87171;
-    --info: #38bdf8;
+    color-scheme: dark;
+    --surface: #191a1c;
+    --surface-raised: #222326;
+    --on-surface: #f4f2ef;
+    --primary: #f4f2ef;
+    --primary-on: #191a1c;
+    --muted: #2b2c2f;
+    --muted-on: #bbb8b3;
+    --border: #424244;
+    --accent: #704d3e;
+    --accent-on: #fff2e9;
+    --success: #8ed6a8;
+    --warning: #efc17b;
+    --danger: #d77878;
+    --info: #91bacb;
   }
 }
 
-body {
-  background: var(--surface);
-  color: var(--on-surface);
-  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
-}
-
-/* Printed proposals always use light, ink-friendly colors regardless of the viewer's OS theme. */
+/* Printed proposals stay ink-friendly even when the operating system requests a dark theme. */
 @media print {
   :root {
+    color-scheme: light;
     --surface: #ffffff;
-    --on-surface: #171717;
-    --primary: #1d4ed8;
+    --surface-raised: #ffffff;
+    --on-surface: #17191c;
+    --primary: #17191c;
     --primary-on: #ffffff;
-    --muted: #f4f4f5;
-    --muted-on: #52525b;
-    --border: #d4d4d8;
-    --success: #15803d;
-    --warning: #b45309;
-    --danger: #b91c1c;
-    --info: #0369a1;
+    --muted: #f4f3f1;
+    --muted-on: #5b6067;
+    --border: #d9d7d3;
+    --accent: #fbe1d1;
+    --accent-on: #5d2a1a;
+    --success: #276246;
+    --warning: #865309;
+    --danger: #a33131;
+    --info: #365d70;
   }
 }
