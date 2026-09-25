@@ -190,3 +190,116 @@ export async function generateProposalAction(
   revalidatePath(`/c/${scope.clientId}/b/${scope.brandId}`);
   redirect(`/c/${scope.clientId}/b/${scope.brandId}/proposals/${result.value.id}`);
 }
+
+export async function reviseProposalAction(
+  scope: { clientId: string; brandId: string },
+  proposalId: string,
+  _prevState: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const feedback = String(formData.get("feedback") ?? "");
+
+  if (feedback.trim().length === 0) {
+    return { status: "error", message: "La retroalimentación es obligatoria para solicitar cambios." };
+  }
+
+  const result = await container.reviseProposal({
+    scope,
+    proposalId,
+    feedback,
+    reviewer: container.currentOwnerName(),
+  });
+
+  if (!result.ok) {
+    if (result.error.kind === "feedback_required") {
+      return { status: "error", message: "La retroalimentación es obligatoria para solicitar cambios." };
+    }
+    if (result.error.kind === "invalid_transition") {
+      return { status: "error", message: "Esta propuesta ya no admite solicitar cambios en su estado actual." };
+    }
+    if (isGenerationErrorKind(result.error.kind)) {
+      return { status: "error", message: describeGenerationError(result.error as GenerationError) };
+    }
+    return { status: "error", message: "No se pudo generar la revisión." };
+  }
+
+  revalidatePath(`/c/${scope.clientId}/b/${scope.brandId}`);
+  redirect(`/c/${scope.clientId}/b/${scope.brandId}/proposals/${result.value.id}`);
+}
+
+export async function iterateFromApprovedAction(
+  scope: { clientId: string; brandId: string },
+  proposalId: string,
+  _prevState: ActionState,
+  _formData: FormData,
+): Promise<ActionState> {
+  const result = await container.iterateFromApproved({ scope, proposalId });
+
+  if (!result.ok) {
+    if (result.error.kind === "invalid_transition") {
+      return { status: "error", message: "Solo se puede iniciar una nueva iteración desde una versión aprobada." };
+    }
+    if (isGenerationErrorKind(result.error.kind)) {
+      return { status: "error", message: describeGenerationError(result.error as GenerationError) };
+    }
+    return { status: "error", message: "No se pudo iniciar la nueva iteración." };
+  }
+
+  revalidatePath(`/c/${scope.clientId}/b/${scope.brandId}`);
+  redirect(`/c/${scope.clientId}/b/${scope.brandId}/proposals/${result.value.id}`);
+}
+
+// ---------------------------------------------------------------------------
+// Review workflow
+// ---------------------------------------------------------------------------
+
+export async function submitForReviewAction(
+  scope: { clientId: string; brandId: string },
+  proposalId: string,
+  _prevState: ActionState,
+  _formData: FormData,
+): Promise<ActionState> {
+  const result = await container.submitForReview({ scope, proposalId });
+
+  if (!result.ok) {
+    return { status: "error", message: "No se pudo enviar la propuesta a revisión." };
+  }
+
+  revalidatePath(`/c/${scope.clientId}/b/${scope.brandId}`);
+  revalidatePath(`/c/${scope.clientId}/b/${scope.brandId}/proposals/${proposalId}`);
+  return { status: "success", message: "Propuesta enviada a revisión." };
+}
+
+export async function approveProposalAction(
+  scope: { clientId: string; brandId: string },
+  proposalId: string,
+  _prevState: ActionState,
+  _formData: FormData,
+): Promise<ActionState> {
+  const result = await container.approveProposal({ scope, proposalId });
+
+  if (!result.ok) {
+    return { status: "error", message: "No se pudo aprobar la propuesta." };
+  }
+
+  revalidatePath(`/c/${scope.clientId}/b/${scope.brandId}`);
+  revalidatePath(`/c/${scope.clientId}/b/${scope.brandId}/proposals/${proposalId}`);
+  return { status: "success", message: `Propuesta aprobada por ${container.currentOwnerName()}.` };
+}
+
+export async function archiveProposalAction(
+  scope: { clientId: string; brandId: string },
+  proposalId: string,
+  _prevState: ActionState,
+  _formData: FormData,
+): Promise<ActionState> {
+  const result = await container.archiveProposal({ scope, proposalId });
+
+  if (!result.ok) {
+    return { status: "error", message: "No se pudo archivar la propuesta." };
+  }
+
+  revalidatePath(`/c/${scope.clientId}/b/${scope.brandId}`);
+  revalidatePath(`/c/${scope.clientId}/b/${scope.brandId}/proposals/${proposalId}`);
+  return { status: "success", message: "Propuesta archivada." };
+}

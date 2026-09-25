@@ -20,6 +20,11 @@ export class JsonReviewDecisionRepository implements ReviewDecisionRepository {
     return all.filter((decision) => decision.proposalId === proposalId);
   }
 
+  async listByThread(scope: Scope, proposalThreadId: string): Promise<ReviewDecision[]> {
+    const all = await this.repo.list(scope);
+    return all.filter((decision) => decision.proposalThreadId === proposalThreadId);
+  }
+
   save(decision: ReviewDecision): Promise<void> {
     return this.repo.save(decision);
   }

@@ -51,3 +51,20 @@ body {
   color: var(--on-surface);
   font-family: var(--font-sans), Arial, Helvetica, sans-serif;
 }
+
+/* Printed proposals always use light, ink-friendly colors regardless of the viewer's OS theme. */
+@media print {
+  :root {
+    --surface: #ffffff;
+    --on-surface: #171717;
+    --primary: #1d4ed8;
+    --primary-on: #ffffff;
+    --muted: #f4f4f5;
+    --muted-on: #52525b;
+    --border: #d4d4d8;
+    --success: #15803d;
+    --warning: #b45309;
+    --danger: #b91c1c;
+    --info: #0369a1;
+  }
+}

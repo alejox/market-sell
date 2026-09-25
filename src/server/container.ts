@@ -37,6 +37,26 @@ import {
   createUpdateCampaignBrief,
   type UpdateCampaignBriefInput,
 } from "@/modules/strategy/application/use-cases/update-campaign-brief";
+import {
+  createIterateFromApproved,
+  type IterateFromApprovedInput,
+} from "@/modules/strategy/application/use-cases/iterate-from-approved";
+import {
+  createSubmitForReview,
+  type SubmitForReviewInput,
+} from "@/modules/review/application/use-cases/submit-for-review";
+import {
+  createApproveProposal,
+  type ApproveProposalInput,
+} from "@/modules/review/application/use-cases/approve-proposal";
+import {
+  createArchiveProposal,
+  type ArchiveProposalInput,
+} from "@/modules/review/application/use-cases/archive-proposal";
+import {
+  createListReviewHistory,
+  type ListReviewHistoryInput,
+} from "@/modules/review/application/use-cases/list-review-history";
 
 const clients = new JsonClientRepository(collectionFilePath("clients"));
 const brands = new JsonBrandRepository(collectionFilePath("brands"));
@@ -50,6 +70,9 @@ const resultSnapshots = new JsonResultSnapshotRepository(collectionFilePath("res
 const generator = new GeminiProposalGenerator();
 const clock = new SystemClock();
 const ids = new UuidIdGenerator();
+
+/** The single local owner identity for this release. Recorded as the approver on every approval. */
+const OWNER_NAME = process.env.OWNER_NAME || "Owner";
 
 export const repositories = {
   clients,
@@ -108,9 +131,30 @@ const reviseProposalUseCase = createReviseProposal({
   ids,
 });
 
+const iterateFromApprovedUseCase = createIterateFromApproved({
+  brands,
+  audiences,
+  briefs,
+  proposals,
+  resultSnapshots,
+  generator,
+  clock,
+  ids,
+});
+
 const updateBrandUseCase = createUpdateBrand({ brands, clock });
 const updateAudienceUseCase = createUpdateAudience({ audiences, clock });
 const updateCampaignBriefUseCase = createUpdateCampaignBrief({ briefs, clock });
+
+const submitForReviewUseCase = createSubmitForReview({ proposals, clock });
+const approveProposalUseCase = createApproveProposal({ proposals, reviewDecisions, clock, ids, reviewer: OWNER_NAME });
+const archiveProposalUseCase = createArchiveProposal({ proposals, clock });
+const listReviewHistoryUseCase = createListReviewHistory({ reviewDecisions });
+
+/** The owner identity Server Actions should record as the approver / a manual result's `recordedBy`. */
+export function currentOwnerName(): string {
+  return OWNER_NAME;
+}
 
 async function withSeed<T>(run: () => Promise<T>): Promise<T> {
   await ensureWorkspaceSeeded();
@@ -137,4 +181,25 @@ export function updateAudience(input: UpdateAudienceInput) {
 
 export function updateCampaignBrief(input: UpdateCampaignBriefInput) {
   return withSeed(() => updateCampaignBriefUseCase(input));
+}
+
+/** Starts a new iteration directly from an approved version (e.g. after new results). */
+export function iterateFromApproved(input: IterateFromApprovedInput) {
+  return withSeed(() => iterateFromApprovedUseCase(input));
+}
+
+export function submitForReview(input: SubmitForReviewInput) {
+  return withSeed(() => submitForReviewUseCase(input));
+}
+
+export function approveProposal(input: ApproveProposalInput) {
+  return withSeed(() => approveProposalUseCase(input));
+}
+
+export function archiveProposal(input: ArchiveProposalInput) {
+  return withSeed(() => archiveProposalUseCase(input));
+}
+
+export function listReviewHistory(input: ListReviewHistoryInput) {
+  return withSeed(() => listReviewHistoryUseCase(input));
 }

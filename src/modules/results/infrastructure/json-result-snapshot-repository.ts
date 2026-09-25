@@ -20,6 +20,11 @@ export class JsonResultSnapshotRepository implements ResultSnapshotRepository {
     return all.filter((snapshot) => snapshot.proposalId === proposalId);
   }
 
+  async listByThread(scope: Scope, proposalThreadId: string): Promise<ResultSnapshot[]> {
+    const all = await this.repo.list(scope);
+    return all.filter((snapshot) => snapshot.proposalThreadId === proposalThreadId);
+  }
+
   save(snapshot: ResultSnapshot): Promise<void> {
     return this.repo.save(snapshot);
   }

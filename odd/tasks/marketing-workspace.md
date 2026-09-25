@@ -56,7 +56,7 @@ client portal, billing, team permissions, image/video generation, deployment.
   data delimiting), validation, revision mode, unavailable state + tests. — route: delegated (writer B)
 - [x] **T5** Workspace UI: first screen (client/brand, brief view/edit, audience switch,
   generate/open proposal, compare tracks), proposal renderer with fact/assumption badges. — route: delegated (writer C)
-- [ ] **T6** Review workflow: submit, approve (approver + timestamp + version), request changes
+- [x] **T6** Review workflow: submit, approve (approver + timestamp + version), request changes
   → new draft, archive, history, Markdown export marking approval status. — route: delegated (writer C)
 - [ ] **T7** Learning loop: manual result snapshots UI + inclusion in next generation. — route: delegated (writer C)
 - [ ] **T8** Verification: lint, typecheck, tests, build, keyboard + mobile pass. — route: parent spot check
@@ -289,7 +289,52 @@ See spec §9 (all ten). Tracked in T8 evidence.
     ownership, see commit hashes below).
   - New files: see `git show --stat` on this commit; key ones listed above.
 
+- **T6** done. New use cases (`src/modules/review/application/use-cases/`, all with tests):
+  `submitForReview` (draft → in_review), `approveProposal` (in_review → approved; records a
+  `ReviewDecision` with `reviewer` = `OWNER_NAME` sourced once in the container and threaded through as a
+  plain string dependency — never re-read from env inside the use case), `archiveProposal` (any
+  non-archived state → archived; archiving is not a review decision, so no `ReviewDecision` is written),
+  `listReviewHistory` (every decision across every version in one thread, oldest first). `requestChanges`
+  reuses the existing T4 `reviseProposal` use case unchanged, per the task's own instruction.
+
+  Resolved the T4 decision gap: `iterateFromApproved`
+  (`src/modules/strategy/application/use-cases/iterate-from-approved.ts`) starts a new draft directly from
+  an `approved` version — fails fast with `invalid_transition` if the source proposal is not `approved`,
+  loads brief/audience/brand, checks generator availability, builds a *non*-revision prompt (no
+  `OWNER_FEEDBACK`/`PREVIOUS_PROPOSAL` blocks — this is not owner feedback, it is "regenerate with what we
+  now know"), and calls `review/domain/proposal-lifecycle`'s `createRevision` (already supported
+  `"approved"` as a source state since T2) to get `parentVersion` set and a fresh `draft`. No
+  `ReviewDecision` is recorded and the approved source proposal is never re-saved — verified in the test by
+  asserting the persisted v1 is `deepEqual` to its original content after the call. This needed
+  `ResultSnapshotRepository.listByThread` (added to the port + both adapters here, one commit ahead of its
+  full T7 payoff) so the new iteration sees every result recorded anywhere in the thread, not one exact
+  proposal id.
+
+  Export: `renderProposalMarkdown` (`src/modules/strategy/application/export/render-proposal-markdown.ts`)
+  is a pure function — header states brand/audience/version/state, `**Aprobado por:**`+timestamp when
+  approved, otherwise a `> **BORRADOR — NO APROBADO**` marker at the very top; every claim line resolves
+  cited `factIds` to their statements and tags `[Hecho]`/`[Dato del propietario]`/`[Supuesto]`/`[Hipótesis]`;
+  a closing "Referencias de origen" section lists every source reference (also fact-resolved where
+  possible). `GET .../proposals/[proposalId]/export/route.ts` returns it as `text/markdown` with
+  `Content-Disposition: attachment`. `.../proposals/[proposalId]/print/page.tsx` reuses the same
+  `ProposalDocument` component the interactive page uses, adds a `PrintTriggerButton` (`window.print()`,
+  `print:hidden`), and `globals.css` gained a `@media print` block that pins the color tokens to their
+  light values regardless of the viewer's OS theme (no dark-background page eating ink).
+
+  UI: `ReviewControls` (client, state-aware: draft→"Enviar a revisión"; in_review→"Aprobar" behind an
+  explicit two-step confirmation panel, plus "Solicitar cambios" with a required feedback textarea;
+  approved→export/print links, "Iniciar nueva iteración", "Archivar"; changes_requested/archived→status
+  text only) and `ReviewHistoryTimeline` (ordered list, decision/reviewer/version/feedback/date, rendered
+  both on the proposal page for its own thread and on the workspace page below the version list). Viewing
+  any old version works because every version is its own `Proposal` id/route —
+  `.../proposals/[proposalId]` has no "only latest" restriction.
+
+  - `npm run lint`: 0 errors, 0 warnings.
+  - `npm run typecheck`: clean.
+  - `npm test`: passing (full count in T7 evidence — verified once against the final combined tree; see
+    commit hashes below for the per-task split).
+
 ## Next step
 
-T6 (writer C) — Review workflow: submit/approve/request-changes/archive, history, `iterateFromApproved`
-(the T4 decision gap), Markdown export + print page.
+T7 (writer C) — Learning loop: `recordResultSnapshot`/`listResultSnapshots`, results UI, verify/fix
+generation's snapshot scoping.
