@@ -1,0 +1,28 @@
+import type { ProposalContent } from "./proposal-content.schema";
+
+export type ProposalState = "draft" | "in_review" | "changes_requested" | "approved" | "archived";
+
+/**
+ * One version of a proposal inside a thread (one thread per campaign
+ * brief). State transitions and revision creation live in the `review`
+ * module's `proposal-lifecycle`, which returns new Proposal values instead
+ * of mutating this one.
+ */
+export interface Proposal {
+  id: string;
+  clientId: string;
+  brandId: string;
+  briefId: string;
+  proposalThreadId: string;
+  version: number;
+  parentVersion: number | null;
+  state: ProposalState;
+  content: ProposalContent;
+  /** Fact ids / source URLs the content draws on. */
+  sourceReferences: string[];
+  createdAt: string;
+  updatedAt: string;
+  submittedAt: string | null;
+  approvedAt: string | null;
+  approvedBy: string | null;
+}

@@ -47,7 +47,7 @@ client portal, billing, team permissions, image/video generation, deployment.
 
 - [x] **T1** Foundation tooling: deps (zod, @google/genai, tsx), test script, AGENTS.md/CLAUDE.md,
   `.env.example`, `.data/` ignore, design tokens, Spanish root layout. — route: delegated (writer A)
-- [ ] **T2** Domain: entities (Client, Brand, Audience, CampaignBrief, Proposal, ReviewDecision,
+- [x] **T2** Domain: entities (Client, Brand, Audience, CampaignBrief, Proposal, ReviewDecision,
   ResultSnapshot), proposal zod schema (9 sections, claim provenance labels), state machine and
   versioning rules + unit tests. — route: delegated (writer A)
 - [ ] **T3** Persistence: repository ports, JSON file adapter with client/brand scoping, Ventex
@@ -90,6 +90,34 @@ See spec §9 (all ten). Tracked in T8 evidence.
   - `npm run typecheck`: clean.
   - `npm run build`: succeeded (Next 16.3.6, Turbopack, static `/`).
 
+- **T2** done. Domain split across screaming contexts: `src/modules/clients/domain`
+  (`client.ts`, `brand.ts` with `ProductFact`/`FactProvenance`), `src/modules/strategy/domain`
+  (`claim.ts` — shared `ClaimBasis`/`Claim<T>` + zod `claimSchema`, `audience.ts`,
+  `campaign-brief.ts`, `proposal.ts` entity, `proposal-content.schema.ts` — the 9-section zod
+  schema, `json-schema-sanitizer.ts`), `src/modules/review/domain` (`review-decision.ts`,
+  `proposal-lifecycle.ts` — pure `submitForReview`/`approve`/`requestChanges`/`archive`/
+  `createRevision`), `src/modules/results/domain` (`result-snapshot.ts`). Shared `Result<T,E>`
+  type in `src/shared/result.ts` (cross-cutting kernel, not a bounded context). Every
+  Audience/CampaignBrief/Proposal/ReviewDecision/ResultSnapshot carries `clientId` + `brandId`.
+  `proposalContentSchema` covers all 9 sections from spec §4 with `basis`-tagged claims on the
+  fields that matter (audience insight, positioning, campaign concept core message/CTA, creative
+  concept, paid-promotion audience hypothesis); content plan enforces all 4 weeks present via
+  `.refine`; creative briefs enforce at least one `short_video`/`carousel`/`static_or_story` via
+  `.refine`; `budgetRange` stays nullable (owner-only). `getProposalContentJsonSchema()` exports
+  a Gemini-safe JSON Schema — `json-schema-sanitizer.ts` inlines `$defs`/`$ref` (only emitted by
+  zod on cycles), and collapses both of zod's `.nullable()` shapes (`anyOf:[T,{type:"null"}]`
+  for object/array branches, `type:[T,"null"]` for zod's own pre-collapsed primitive branches)
+  into `{ ...T, nullable: true }`; drops `$schema`/`$id`/`additionalProperties`. Lifecycle
+  functions return `Result`, never throw; `approve` records `approvedBy`/`approvedAt` and keeps
+  `version` unchanged; `createRevision` only allowed from `changes_requested`/`approved`, returns
+  a brand-new object (verified via a frozen-copy equality check in the test) at `version + 1`
+  with `parentVersion` set and `state: "draft"`.
+  - `npm test`: 18/18 passing (`proposal-lifecycle.test.ts`,
+    `proposal-content.schema.test.ts`, `json-schema-sanitizer.test.ts`).
+  - `npm run typecheck`: clean.
+  - `npm run lint`: 0 errors, 0 warnings.
+  - Commit `cbe9d2b` (foundation) precedes this task's commit.
+
 ## Next step
 
-T2 (writer A) — domain entities, proposal schema, review lifecycle.
+T3 (writer A) — persistence ports, JSON file adapter, Ventex seed.
