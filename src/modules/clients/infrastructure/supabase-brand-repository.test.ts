@@ -49,3 +49,16 @@ test("listByClient and getById filter by client_id, not just by brand id", async
   assert.equal((await repo.getById("client-1", "brand-a"))?.name, "A");
   assert.equal(await repo.getById("client-2", "does-not-exist"), null);
 });
+
+test("insertIfAbsent never overwrites an existing brand, even with different content", async () => {
+  const fake = new FakeSupabaseClient();
+  const repo = new SupabaseBrandRepository(async () => fake as unknown as SupabaseClient);
+  const brand = makeBrand();
+
+  const inserted = await repo.insertIfAbsent(brand);
+  const insertedAgain = await repo.insertIfAbsent({ ...brand, name: "Owner-edited name" });
+
+  assert.equal(inserted, true);
+  assert.equal(insertedAgain, false);
+  assert.equal((await repo.getById("client-1", "brand-1"))?.name, "Ventex");
+});

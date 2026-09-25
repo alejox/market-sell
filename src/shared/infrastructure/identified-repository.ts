@@ -21,4 +21,22 @@ export class IdentifiedRepository<T extends { id: string }> {
   async save(item: T): Promise<void> {
     await this.store.mutate((items) => upsertById(items, item));
   }
+
+  /**
+   * Inserts only when no row with this id exists yet; an existing row is
+   * never modified, even to identical content. The existence check and the
+   * write happen inside one `mutate` transform, so this is safe against a
+   * second concurrent `insertIfAbsent` for the same id within this process
+   * (see `JsonFileStore.mutate`'s serialized queue). Returns whether this
+   * call actually inserted the row.
+   */
+  async insertIfAbsent(item: T): Promise<boolean> {
+    let inserted = false;
+    await this.store.mutate((items) => {
+      if (items.some((existing) => existing.id === item.id)) return items;
+      inserted = true;
+      return [...items, item];
+    });
+    return inserted;
+  }
 }

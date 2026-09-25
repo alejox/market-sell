@@ -23,4 +23,8 @@ export class InMemoryProposalRepository implements ProposalRepository {
   save(proposal: Proposal): Promise<void> {
     return this.repo.save(proposal);
   }
+
+  insertIfAbsent(proposal: Proposal): Promise<boolean> {
+    return this.repo.insertIfAbsent(proposal);
+  }
 }

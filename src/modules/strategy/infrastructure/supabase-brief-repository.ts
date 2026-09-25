@@ -81,4 +81,9 @@ export class SupabaseBriefRepository implements BriefRepository {
   save(brief: CampaignBrief): Promise<void> {
     return this.repo.save(brief);
   }
+
+  /** Never overwrites an existing brief — used by seed/import, safe under concurrent serverless instances. */
+  insertIfAbsent(brief: CampaignBrief): Promise<boolean> {
+    return this.repo.insertIfAbsent(brief);
+  }
 }

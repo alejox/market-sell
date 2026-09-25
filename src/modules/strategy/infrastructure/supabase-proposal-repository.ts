@@ -91,4 +91,9 @@ export class SupabaseProposalRepository implements ProposalRepository {
   save(proposal: Proposal): Promise<void> {
     return this.repo.save(proposal);
   }
+
+  /** Never overwrites an existing proposal — used by import, safe under concurrent serverless instances. */
+  insertIfAbsent(proposal: Proposal): Promise<boolean> {
+    return this.repo.insertIfAbsent(proposal);
+  }
 }

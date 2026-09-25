@@ -69,4 +69,9 @@ export class SupabaseAudienceRepository implements AudienceRepository {
   save(audience: Audience): Promise<void> {
     return this.repo.save(audience);
   }
+
+  /** Never overwrites an existing audience — used by seed/import, safe under concurrent serverless instances. */
+  insertIfAbsent(audience: Audience): Promise<boolean> {
+    return this.repo.insertIfAbsent(audience);
+  }
 }

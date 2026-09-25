@@ -18,4 +18,8 @@ export class InMemoryAudienceRepository implements AudienceRepository {
   save(audience: Audience): Promise<void> {
     return this.repo.save(audience);
   }
+
+  insertIfAbsent(audience: Audience): Promise<boolean> {
+    return this.repo.insertIfAbsent(audience);
+  }
 }

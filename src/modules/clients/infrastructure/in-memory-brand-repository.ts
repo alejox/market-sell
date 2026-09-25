@@ -19,4 +19,8 @@ export class InMemoryBrandRepository implements BrandRepository {
   save(brand: Brand): Promise<void> {
     return this.repo.save(brand);
   }
+
+  insertIfAbsent(brand: Brand): Promise<boolean> {
+    return this.repo.insertIfAbsent(brand);
+  }
 }

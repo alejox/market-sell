@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "test": "tsx --test \"src/**/*.test.ts\"",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "import:data": "tsx scripts/import-data.ts"
   },
   "dependencies": {
     "@google/genai": "^2.24.0",

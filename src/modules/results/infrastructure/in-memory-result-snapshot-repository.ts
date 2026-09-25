@@ -24,4 +24,8 @@ export class InMemoryResultSnapshotRepository implements ResultSnapshotRepositor
   save(snapshot: ResultSnapshot): Promise<void> {
     return this.repo.save(snapshot);
   }
+
+  insertIfAbsent(snapshot: ResultSnapshot): Promise<boolean> {
+    return this.repo.insertIfAbsent(snapshot);
+  }
 }

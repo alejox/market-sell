@@ -71,4 +71,22 @@ export class SupabaseClientRepository implements ClientRepository {
     const result = await supabase.from(TABLE).upsert(toRow(client, ownerId), { onConflict: "id" });
     unwrapWrite("clients.save", result);
   }
+
+  /**
+   * Inserts only when no client with this id exists yet (`ON CONFLICT DO
+   * NOTHING`) — used by seed/import so a race between serverless instances,
+   * or a rerun after the owner has edited the seeded client, never
+   * overwrites existing data. See `ScopedSupabaseRepository.insertIfAbsent`
+   * for the same pattern.
+   */
+  async insertIfAbsent(client: Client): Promise<boolean> {
+    const supabase = await this.getClient();
+    const ownerId = await verifiedOwnerId(supabase);
+    const result = await supabase
+      .from(TABLE)
+      .upsert(toRow(client, ownerId), { onConflict: "id", ignoreDuplicates: true })
+      .select("id");
+    const inserted = unwrapList<{ id: string }>("clients.insertIfAbsent", result);
+    return inserted.length > 0;
+  }
 }

@@ -28,4 +28,9 @@ export class JsonResultSnapshotRepository implements ResultSnapshotRepository {
   save(snapshot: ResultSnapshot): Promise<void> {
     return this.repo.save(snapshot);
   }
+
+  /** Never overwrites an existing result snapshot — used by import, safe under concurrent serverless instances. */
+  insertIfAbsent(snapshot: ResultSnapshot): Promise<boolean> {
+    return this.repo.insertIfAbsent(snapshot);
+  }
 }

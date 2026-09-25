@@ -76,4 +76,12 @@ export class SupabaseBrandRepository implements BrandRepository {
     const result = await supabase.from(TABLE).upsert(toRow(brand), { onConflict: "id" });
     unwrapWrite("brands.save", result);
   }
+
+  /** Never overwrites an existing brand — used by seed/import, safe under concurrent serverless instances. */
+  async insertIfAbsent(brand: Brand): Promise<boolean> {
+    const supabase = await this.getClient();
+    const result = await supabase.from(TABLE).upsert(toRow(brand), { onConflict: "id", ignoreDuplicates: true }).select("id");
+    const inserted = unwrapList<{ id: string }>("brands.insertIfAbsent", result);
+    return inserted.length > 0;
+  }
 }

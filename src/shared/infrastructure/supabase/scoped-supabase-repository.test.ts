@@ -100,3 +100,26 @@ test("a Postgres error on write is thrown with operation context, not swallowed"
     /widgets\.save failed/,
   );
 });
+
+test("insertIfAbsent inserts a new row and reports it was inserted", async () => {
+  const fake = new FakeSupabaseClient();
+  const repo = makeRepo(fake);
+  const widget: Widget = { id: "w1", clientId: SCOPE_A.clientId, brandId: SCOPE_A.brandId, label: "First", refId: "ref-1" };
+
+  const inserted = await repo.insertIfAbsent(widget);
+
+  assert.equal(inserted, true);
+  assert.deepEqual(await repo.getById(SCOPE_A, "w1"), widget);
+});
+
+test("insertIfAbsent never overwrites an existing row, even with different content", async () => {
+  const fake = new FakeSupabaseClient();
+  const repo = makeRepo(fake);
+  const widget: Widget = { id: "w1", clientId: SCOPE_A.clientId, brandId: SCOPE_A.brandId, label: "First", refId: "ref-1" };
+  await repo.insertIfAbsent(widget);
+
+  const insertedAgain = await repo.insertIfAbsent({ ...widget, label: "Clobbered" });
+
+  assert.equal(insertedAgain, false);
+  assert.equal((await repo.getById(SCOPE_A, "w1"))?.label, "First");
+});

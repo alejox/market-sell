@@ -37,4 +37,23 @@ export class ScopedRepository<T extends ScopedEntity> {
   async save(item: T): Promise<void> {
     await this.store.mutate((items) => upsertById(items, item));
   }
+
+  /**
+   * Inserts only when no row with this id exists yet (ids are globally
+   * unique, not just unique within a scope — see the workspace schema
+   * migration); an existing row is never modified, even to identical
+   * content. Safe against a second concurrent `insertIfAbsent` for the same
+   * id within this process, for the same reason as
+   * `IdentifiedRepository.insertIfAbsent`. Returns whether this call
+   * actually inserted the row.
+   */
+  async insertIfAbsent(item: T): Promise<boolean> {
+    let inserted = false;
+    await this.store.mutate((items) => {
+      if (items.some((existing) => existing.id === item.id)) return items;
+      inserted = true;
+      return [...items, item];
+    });
+    return inserted;
+  }
 }

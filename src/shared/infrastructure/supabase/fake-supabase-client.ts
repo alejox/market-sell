@@ -27,14 +27,30 @@ class FakeTable {
   /** When set, every write against this table fails with this error instead of applying. */
   failWritesWith: PostgrestError | null = null;
 
-  upsert(incoming: Row[]): { error: PostgrestError | null } {
-    if (this.failWritesWith) return { error: this.failWritesWith };
+  /**
+   * Mirrors real `upsert(rows, { onConflict, ignoreDuplicates })` semantics:
+   * with `ignoreDuplicates`, a row whose id already exists is left
+   * completely untouched (not merged) and is excluded from `written` — the
+   * same shape a real Supabase "ON CONFLICT DO NOTHING ... RETURNING" gives
+   * `SupabaseClientRepository`/`SupabaseBrandRepository`/
+   * `ScopedSupabaseRepository.insertIfAbsent` to detect whether they
+   * actually inserted anything.
+   */
+  upsert(incoming: Row[], ignoreDuplicates = false): { error: PostgrestError | null; written: Row[] } {
+    if (this.failWritesWith) return { error: this.failWritesWith, written: [] };
+    const written: Row[] = [];
     for (const row of incoming) {
       const index = this.rows.findIndex((existing) => existing.id === row.id);
-      if (index === -1) this.rows.push(row);
-      else this.rows[index] = { ...this.rows[index], ...row };
+      if (index === -1) {
+        this.rows.push(row);
+        written.push(row);
+      } else if (!ignoreDuplicates) {
+        this.rows[index] = { ...this.rows[index], ...row };
+        written.push(this.rows[index]);
+      }
+      // ignoreDuplicates && already exists: leave the row untouched, not written.
     }
-    return { error: null };
+    return { error: null, written };
   }
 }
 
@@ -42,7 +58,7 @@ class FakeTable {
 class FakeQueryBuilder implements PromiseLike<{ data: unknown; error: PostgrestError | null }> {
   private readonly filters: Array<[string, unknown]> = [];
   private mode: "list" | "maybeSingle" = "list";
-  private write: { kind: "upsert"; rows: Row[] } | null = null;
+  private write: { kind: "upsert"; rows: Row[]; ignoreDuplicates: boolean } | null = null;
 
   constructor(private readonly table: FakeTable) {}
 
@@ -64,8 +80,8 @@ class FakeQueryBuilder implements PromiseLike<{ data: unknown; error: PostgrestE
     return this;
   }
 
-  upsert(rows: Row | Row[], _options?: { onConflict?: string }): this {
-    this.write = { kind: "upsert", rows: Array.isArray(rows) ? rows : [rows] };
+  upsert(rows: Row | Row[], options?: { onConflict?: string; ignoreDuplicates?: boolean }): this {
+    this.write = { kind: "upsert", rows: Array.isArray(rows) ? rows : [rows], ignoreDuplicates: options?.ignoreDuplicates ?? false };
     return this;
   }
 
@@ -75,8 +91,8 @@ class FakeQueryBuilder implements PromiseLike<{ data: unknown; error: PostgrestE
 
   private execute(): { data: unknown; error: PostgrestError | null } {
     if (this.write) {
-      const { error } = this.table.upsert(this.write.rows);
-      return error ? { data: null, error } : ok(null);
+      const { error, written } = this.table.upsert(this.write.rows, this.write.ignoreDuplicates);
+      return error ? { data: null, error } : ok(written);
     }
     const rows = this.table.rows.filter((row) => this.matches(row));
     if (this.mode === "maybeSingle") {

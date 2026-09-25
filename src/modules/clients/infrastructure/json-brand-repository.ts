@@ -23,4 +23,9 @@ export class JsonBrandRepository implements BrandRepository {
   save(brand: Brand): Promise<void> {
     return this.repo.save(brand);
   }
+
+  /** Never overwrites an existing brand — used by seed/import, safe under concurrent serverless instances. */
+  insertIfAbsent(brand: Brand): Promise<boolean> {
+    return this.repo.insertIfAbsent(brand);
+  }
 }

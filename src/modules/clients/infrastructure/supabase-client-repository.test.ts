@@ -50,3 +50,18 @@ test("save refuses to write when the request's owner claim does not match SUPABA
   await assert.rejects(() => repo.save(makeClient()));
   assert.deepEqual(fake.rowsOf("clients"), []);
 });
+
+test("insertIfAbsent stamps owner_id and never overwrites an existing client", async () => {
+  process.env.SUPABASE_OWNER_ID = "owner-uuid";
+  const fake = new FakeSupabaseClient();
+  fake.setClaims({ sub: "owner-uuid" });
+  const repo = new SupabaseClientRepository(async () => fake as unknown as SupabaseClient);
+  const client = makeClient();
+
+  const inserted = await repo.insertIfAbsent(client);
+  const insertedAgain = await repo.insertIfAbsent({ ...client, name: "Owner-edited name" });
+
+  assert.equal(inserted, true);
+  assert.equal(insertedAgain, false, "seed/import must never overwrite a client the owner has since edited");
+  assert.equal((await repo.getById("client-1"))?.name, "Marca propia");
+});

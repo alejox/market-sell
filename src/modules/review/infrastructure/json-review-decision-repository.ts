@@ -28,4 +28,9 @@ export class JsonReviewDecisionRepository implements ReviewDecisionRepository {
   save(decision: ReviewDecision): Promise<void> {
     return this.repo.save(decision);
   }
+
+  /** Never overwrites an existing review decision — used by import, safe under concurrent serverless instances. */
+  insertIfAbsent(decision: ReviewDecision): Promise<boolean> {
+    return this.repo.insertIfAbsent(decision);
+  }
 }

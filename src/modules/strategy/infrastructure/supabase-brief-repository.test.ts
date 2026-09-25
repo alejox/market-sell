@@ -51,6 +51,19 @@ test("getByAudience filters by audience_id within scope", async () => {
   assert.equal(await repo.getByAudience(SCOPE_A, "audience-missing"), null);
 });
 
+test("insertIfAbsent never overwrites an existing brief, even with different content", async () => {
+  const fake = new FakeSupabaseClient();
+  const repo = new SupabaseBriefRepository(async () => fake as unknown as SupabaseClient);
+  const brief = makeBrief();
+
+  const inserted = await repo.insertIfAbsent(brief);
+  const insertedAgain = await repo.insertIfAbsent({ ...brief, objective: "Owner-edited objective" });
+
+  assert.equal(inserted, true);
+  assert.equal(insertedAgain, false);
+  assert.equal((await repo.getById(SCOPE_A, "brief-1"))?.objective, "Objetivo");
+});
+
 test("brand B cannot read brand A's briefs by id or by audience", async () => {
   const fake = new FakeSupabaseClient();
   const repo = new SupabaseBriefRepository(async () => fake as unknown as SupabaseClient);

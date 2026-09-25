@@ -24,4 +24,8 @@ export class InMemoryReviewDecisionRepository implements ReviewDecisionRepositor
   save(decision: ReviewDecision): Promise<void> {
     return this.repo.save(decision);
   }
+
+  insertIfAbsent(decision: ReviewDecision): Promise<boolean> {
+    return this.repo.insertIfAbsent(decision);
+  }
 }

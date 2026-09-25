@@ -87,11 +87,25 @@ const MISSING_INFORMATION = [
   "Acción de conversión deseada (visitar el sitio, iniciar prueba, solicitar demo o contactar ventas).",
 ];
 
+/**
+ * Inserts only when no row with this id exists yet and never modifies an
+ * existing row, even to identical content. Every seeded repository (JSON,
+ * in-memory, and Supabase) implements this alongside its port so
+ * `ensureVentexSeed` never has to fall back to `save`'s upsert-and-overwrite
+ * semantics — see `IdentifiedRepository`/`ScopedRepository`'s
+ * `insertIfAbsent` (JSON/in-memory) and `ScopedSupabaseRepository`'s /
+ * `SupabaseClientRepository`'s / `SupabaseBrandRepository`'s
+ * `insertIfAbsent` (Supabase, backed by `ON CONFLICT DO NOTHING`).
+ */
+export interface IdempotentSeedRepository<T extends { id: string }> {
+  insertIfAbsent(item: T): Promise<boolean>;
+}
+
 export interface VentexSeedRepositories {
-  clients: ClientRepository;
-  brands: BrandRepository;
-  audiences: AudienceRepository;
-  briefs: BriefRepository;
+  clients: ClientRepository & IdempotentSeedRepository<Client>;
+  brands: BrandRepository & IdempotentSeedRepository<Brand>;
+  audiences: AudienceRepository & IdempotentSeedRepository<Audience>;
+  briefs: BriefRepository & IdempotentSeedRepository<CampaignBrief>;
 }
 
 export interface VentexSeedResult {
@@ -226,8 +240,15 @@ function buildBriefs(owner: string, now: string): CampaignBrief[] {
 }
 
 /**
- * Idempotent: only writes when the fixed-id Ventex client is not already
- * present. Safe to call on every first access of the workspace.
+ * Idempotent and concurrency-safe: every write is `insertIfAbsent`, never
+ * `save`'s upsert-and-overwrite. The `getById` check below is only a fast
+ * path that skips the four insert calls on the common case (already
+ * seeded) — correctness does not depend on it. Two callers (e.g. two
+ * serverless instances racing on the same cold start) can both pass that
+ * check and both reach the inserts below; each fixed id is still inserted
+ * at most once, and neither call ever overwrites a row the other inserted
+ * or a row the owner has since edited, because `insertIfAbsent` never
+ * updates an existing row.
  */
 export async function ensureVentexSeed(
   repos: VentexSeedRepositories,
@@ -241,14 +262,14 @@ export async function ensureVentexSeed(
     return { seeded: false, clientId: VENTEX_CLIENT_ID, brandId: VENTEX_BRAND_ID };
   }
 
-  await repos.clients.save(buildClient(owner, now));
-  await repos.brands.save(buildBrand(now));
+  const clientInserted = await repos.clients.insertIfAbsent(buildClient(owner, now));
+  await repos.brands.insertIfAbsent(buildBrand(now));
   for (const audience of buildAudiences(now)) {
-    await repos.audiences.save(audience);
+    await repos.audiences.insertIfAbsent(audience);
   }
   for (const brief of buildBriefs(owner, now)) {
-    await repos.briefs.save(brief);
+    await repos.briefs.insertIfAbsent(brief);
   }
 
-  return { seeded: true, clientId: VENTEX_CLIENT_ID, brandId: VENTEX_BRAND_ID };
+  return { seeded: clientInserted, clientId: VENTEX_CLIENT_ID, brandId: VENTEX_BRAND_ID };
 }

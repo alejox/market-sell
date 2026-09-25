@@ -23,4 +23,8 @@ export class InMemoryBriefRepository implements BriefRepository {
   save(brief: CampaignBrief): Promise<void> {
     return this.repo.save(brief);
   }
+
+  insertIfAbsent(brief: CampaignBrief): Promise<boolean> {
+    return this.repo.insertIfAbsent(brief);
+  }
 }

@@ -17,4 +17,8 @@ export class InMemoryClientRepository implements ClientRepository {
   save(client: Client): Promise<void> {
     return this.repo.save(client);
   }
+
+  insertIfAbsent(client: Client): Promise<boolean> {
+    return this.repo.insertIfAbsent(client);
+  }
 }

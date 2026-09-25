@@ -78,4 +78,23 @@ export class ScopedSupabaseRepository<Row extends object, T extends { id: string
     const result = await supabase.from(this.table).upsert(this.toRow(item), { onConflict: "id" });
     unwrapWrite(`${this.table}.save`, result);
   }
+
+  /**
+   * Inserts only when no row with this id exists yet, using `ON CONFLICT DO
+   * NOTHING` (`ignoreDuplicates: true`) at the database level — never a
+   * read-then-write, so it stays correct even when several serverless
+   * instances race to seed/import the same fixed id at once, and it never
+   * overwrites a row the owner has since edited. `.select("id")` reads back
+   * which rows were actually inserted; PostgREST returns none for a
+   * conflict it ignored. Returns whether this call actually inserted a row.
+   */
+  async insertIfAbsent(item: T): Promise<boolean> {
+    const supabase = await this.getClient();
+    const result = await supabase
+      .from(this.table)
+      .upsert(this.toRow(item), { onConflict: "id", ignoreDuplicates: true })
+      .select("id");
+    const inserted = unwrapList<{ id: string }>(`${this.table}.insertIfAbsent`, result);
+    return inserted.length > 0;
+  }
 }

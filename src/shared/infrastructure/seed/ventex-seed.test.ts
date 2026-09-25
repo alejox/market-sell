@@ -60,3 +60,38 @@ test("is idempotent: a second call does not duplicate or overwrite data", async 
   assert.equal((await repos.audiences.list(scope)).length, 2);
   assert.equal((await repos.briefs.list(scope)).length, 2);
 });
+
+test("is safe when two concurrent seed attempts race on the same fresh workspace", async () => {
+  const repos = makeRepos();
+
+  const [first, second] = await Promise.all([
+    ensureVentexSeed(repos, { owner: "Ana", now: () => "2026-01-01T00:00:00.000Z" }),
+    ensureVentexSeed(repos, { owner: "Otro nombre", now: () => "2026-01-01T00:00:00.000Z" }),
+  ]);
+
+  // At most one caller actually inserted the client — the loser's writes were no-ops, not overwrites.
+  assert.equal([first.seeded, second.seeded].filter(Boolean).length, 1);
+
+  const clients = await repos.clients.list();
+  assert.equal(clients.length, 1, "a race must never produce a duplicate client");
+
+  const scope = { clientId: VENTEX_CLIENT_ID, brandId: VENTEX_BRAND_ID };
+  assert.equal((await repos.brands.listByClient(VENTEX_CLIENT_ID)).length, 1);
+  assert.equal((await repos.audiences.list(scope)).length, 2, "a race must never duplicate the seeded audiences");
+  assert.equal((await repos.briefs.list(scope)).length, 2, "a race must never duplicate the seeded briefs");
+});
+
+test("a rerun after the owner has edited a seeded record never clobbers that edit", async () => {
+  const repos = makeRepos();
+  await ensureVentexSeed(repos, { owner: "Ana", now: () => "2026-01-01T00:00:00.000Z" });
+
+  const brand = await repos.brands.getById(VENTEX_CLIENT_ID, VENTEX_BRAND_ID);
+  assert.ok(brand);
+  await repos.brands.save({ ...brand, voice: "Tono editado por el dueño" });
+
+  // Force past the fast-path "already seeded" check to exercise insertIfAbsent directly.
+  await repos.brands.insertIfAbsent({ ...brand, voice: "Seed template voice" });
+
+  const afterRerun = await repos.brands.getById(VENTEX_CLIENT_ID, VENTEX_BRAND_ID);
+  assert.equal(afterRerun?.voice, "Tono editado por el dueño");
+});

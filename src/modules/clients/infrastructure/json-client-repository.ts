@@ -21,4 +21,9 @@ export class JsonClientRepository implements ClientRepository {
   save(client: Client): Promise<void> {
     return this.repo.save(client);
   }
+
+  /** Never overwrites an existing client — used by seed/import, safe under concurrent serverless instances. */
+  insertIfAbsent(client: Client): Promise<boolean> {
+    return this.repo.insertIfAbsent(client);
+  }
 }

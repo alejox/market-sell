@@ -38,6 +38,19 @@ test("save round-trips nested Claim<string> jsonb fields exactly through list/ge
   assert.deepEqual(await repo.getById(SCOPE_A, "audience-1"), audience);
 });
 
+test("insertIfAbsent never overwrites an existing audience, even with different content", async () => {
+  const fake = new FakeSupabaseClient();
+  const repo = new SupabaseAudienceRepository(async () => fake as unknown as SupabaseClient);
+  const audience = makeAudience();
+
+  const inserted = await repo.insertIfAbsent(audience);
+  const insertedAgain = await repo.insertIfAbsent({ ...audience, segmentName: "Owner-edited segment" });
+
+  assert.equal(inserted, true);
+  assert.equal(insertedAgain, false);
+  assert.equal((await repo.getById(SCOPE_A, "audience-1"))?.segmentName, "Tiendas");
+});
+
 test("brand B cannot read brand A's audience, even with the exact id", async () => {
   const fake = new FakeSupabaseClient();
   const repo = new SupabaseAudienceRepository(async () => fake as unknown as SupabaseClient);
