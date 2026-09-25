@@ -28,10 +28,10 @@ export function AudienceTabs({
             key={option.id}
             href={`${basePath}?audience=${option.id}`}
             aria-current={selected ? "page" : undefined}
-            className={`rounded-md border px-3 py-2 text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
+            className={`inline-flex min-h-10 items-center rounded-full border px-5 py-2 text-sm font-medium focus-visible:ring-2 focus-visible:ring-primary ${
               selected
                 ? "border-primary bg-primary text-primary-on"
-                : "border-border bg-surface text-on-surface hover:bg-muted"
+                : "border-border bg-surface-raised text-on-surface hover:bg-muted"
             }`}
           >
             {option.segmentName}

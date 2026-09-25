@@ -46,7 +46,7 @@ export function CampaignBriefSection({
         </div>
       )}
 
-      <details className="rounded-md border border-border p-3">
+      <details className="rounded-2xl border border-border p-4">
         <summary className="cursor-pointer text-sm font-medium text-primary">Editar brief de campaña</summary>
         <div className="mt-3">
           <CampaignBriefEditForm brief={brief} action={updateCampaignBriefAction} />

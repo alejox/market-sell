@@ -18,13 +18,13 @@ export function ClientBrandSelector({ options, current }: { options: ClientBrand
   const router = useRouter();
 
   return (
-    <div className="flex flex-col gap-1">
-      <label htmlFor="client-brand-selector" className="text-xs font-medium text-muted-on">
+    <div className="flex min-w-0 flex-col gap-2">
+      <label htmlFor="client-brand-selector" className="text-xs font-medium uppercase tracking-[0.12em] text-muted-on">
         Cliente / marca
       </label>
       <select
         id="client-brand-selector"
-        className="rounded-md border border-border bg-surface px-3 py-2 text-sm text-on-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+        className="min-h-10 max-w-full rounded-full border border-border bg-surface-raised px-4 py-2 text-sm text-on-surface focus-visible:ring-2 focus-visible:ring-primary"
         value={current}
         onChange={(event) => router.push(`/c/${event.target.value}`)}
       >

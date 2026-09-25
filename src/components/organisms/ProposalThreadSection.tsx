@@ -10,17 +10,19 @@ export function ProposalThreadSection({
   versions,
   basePath,
   generateProposalAction,
+  showGenerateAction = true,
 }: {
   versions: Proposal[];
   basePath: string;
   generateProposalAction: BoundFormAction;
+  showGenerateAction?: boolean;
 }) {
   const sorted = [...versions].sort((a, b) => b.version - a.version);
 
   return (
     <Card
       title="Propuestas"
-      actions={<GenerateProposalForm action={generateProposalAction} label={sorted.length > 0 ? "Generar nueva propuesta" : "Generar propuesta"} />}
+      actions={showGenerateAction ? <GenerateProposalForm action={generateProposalAction} label={sorted.length > 0 ? "Generar nueva propuesta" : "Generar propuesta"} /> : undefined}
     >
       {sorted.length === 0 ? (
         <p className="text-sm text-muted-on">Todavía no hay ninguna propuesta generada para esta audiencia.</p>
@@ -30,7 +32,7 @@ export function ProposalThreadSection({
             <li key={proposal.id}>
               <Link
                 href={`${basePath}/proposals/${proposal.id}`}
-                className="flex flex-wrap items-center gap-2 rounded-md border border-border p-3 text-sm hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                className="flex flex-wrap items-center gap-2 rounded-2xl border border-border p-4 text-sm hover:bg-muted focus-visible:ring-2 focus-visible:ring-primary"
               >
                 <span className="font-medium text-on-surface">Versión {proposal.version}</span>
                 <Badge tone={PROPOSAL_STATE_TONES[proposal.state]}>{PROPOSAL_STATE_LABELS[proposal.state]}</Badge>

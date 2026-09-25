@@ -21,7 +21,7 @@ export function ResultSnapshotsSection({
       ) : (
         <ul className="flex flex-col gap-3">
           {sorted.map((snapshot) => (
-            <li key={snapshot.id} className="flex flex-col gap-1 rounded-md border border-border p-3">
+            <li key={snapshot.id} className="flex flex-col gap-2 rounded-2xl bg-muted p-4">
               <div className="flex flex-wrap items-center gap-2 text-sm">
                 <span className="font-medium text-on-surface">
                   {snapshot.period.from} – {snapshot.period.to}
@@ -43,7 +43,7 @@ export function ResultSnapshotsSection({
         </ul>
       )}
 
-      <details className="rounded-md border border-border p-3">
+      <details className="rounded-2xl border border-border p-4">
         <summary className="cursor-pointer text-sm font-medium text-primary">Registrar nuevo resultado</summary>
         <div className="mt-3">
           <ResultSnapshotForm action={recordResultSnapshotAction} />

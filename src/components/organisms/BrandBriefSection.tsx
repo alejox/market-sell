@@ -31,20 +31,22 @@ export function BrandBriefSection({ brand, updateBrandAction }: { brand: Brand; 
 
       <div>
         <h3 className="text-sm font-medium text-on-surface">Hechos del producto</h3>
-        <ul className="mt-1 flex flex-col gap-2">
+        <ul className="mt-3 grid gap-3 sm:grid-cols-2">
           {brand.productFacts.map((fact) => (
-            <li key={fact.id} className="flex flex-wrap items-center gap-2 text-sm text-on-surface">
-              <span>{fact.statement}</span>
-              <Badge tone={FACT_PROVENANCE_TONES[fact.provenance]}>{FACT_PROVENANCE_LABELS[fact.provenance]}</Badge>
-              <Badge tone={fact.approvedForAds ? "success" : "neutral"}>
-                {fact.approvedForAds ? "Aprobado para anuncios" : "No aprobado para anuncios"}
-              </Badge>
+            <li key={fact.id} className="flex flex-col items-start gap-3 rounded-2xl bg-muted p-4 text-sm text-on-surface">
+              <span className="leading-relaxed">{fact.statement}</span>
+              <div className="flex flex-wrap gap-2">
+                <Badge tone={FACT_PROVENANCE_TONES[fact.provenance]}>{FACT_PROVENANCE_LABELS[fact.provenance]}</Badge>
+                <Badge tone={fact.approvedForAds ? "success" : "neutral"}>
+                  {fact.approvedForAds ? "Aprobado para anuncios" : "No aprobado para anuncios"}
+                </Badge>
+              </div>
             </li>
           ))}
         </ul>
       </div>
 
-      <details className="rounded-md border border-border p-3">
+      <details className="rounded-2xl border border-border p-4">
         <summary className="cursor-pointer text-sm font-medium text-primary">Editar marca</summary>
         <div className="mt-3">
           <BrandEditForm brand={brand} action={updateBrandAction} />
