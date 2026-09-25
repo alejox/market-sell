@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/atoms/Button";
 import { TextAreaField } from "@/components/atoms/fields";
 import { StatusMessage } from "@/components/molecules/StatusMessage";
@@ -38,6 +38,18 @@ export function ReviewControls({
   const [archiveState, archiveAction, archivePending] = useActionState(actions.archive, IDLE_ACTION_STATE);
   const [iterateState, iterateAction, iteratePending] = useActionState(actions.iterateFromApproved, IDLE_ACTION_STATE);
   const [confirmingApproval, setConfirmingApproval] = useState(false);
+  const confirmPromptRef = useRef<HTMLParagraphElement>(null);
+  const approvalRegionRef = useRef<HTMLDivElement>(null);
+  const restoreApprovalFocusRef = useRef(false);
+
+  useEffect(() => {
+    if (confirmingApproval) {
+      confirmPromptRef.current?.focus();
+    } else if (restoreApprovalFocusRef.current) {
+      approvalRegionRef.current?.querySelector("button")?.focus();
+      restoreApprovalFocusRef.current = false;
+    }
+  }, [confirmingApproval]);
 
   return (
     <div className="flex flex-col gap-4">
@@ -52,23 +64,26 @@ export function ReviewControls({
 
       {proposal.state === "in_review" && (
         <div className="flex flex-col gap-4">
-          <div className="flex flex-col items-start gap-2">
+          <div ref={approvalRegionRef} className="flex flex-col items-start gap-2">
             {!confirmingApproval ? (
               <Button type="button" onClick={() => setConfirmingApproval(true)}>
                 Aprobar
               </Button>
             ) : (
-              <div className="flex flex-col gap-2 rounded-md border border-warning/40 bg-warning/5 p-3">
-                <p className="text-sm text-on-surface">
+              <div className="flex flex-col gap-3 rounded-2xl border border-warning/40 bg-warning/5 p-4">
+                <p ref={confirmPromptRef} tabIndex={-1} className="text-sm text-on-surface">
                   ¿Confirma la aprobación de la versión {proposal.version}? Esta acción no se puede deshacer.
                 </p>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   <form action={approveAction}>
                     <Button type="submit" disabled={approvePending}>
                       {approvePending ? "Aprobando…" : "Sí, aprobar"}
                     </Button>
                   </form>
-                  <Button type="button" variant="secondary" onClick={() => setConfirmingApproval(false)}>
+                  <Button type="button" variant="secondary" onClick={() => {
+                    restoreApprovalFocusRef.current = true;
+                    setConfirmingApproval(false);
+                  }}>
                     Cancelar
                   </Button>
                 </div>

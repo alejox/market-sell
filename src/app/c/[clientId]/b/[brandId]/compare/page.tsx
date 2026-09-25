@@ -32,14 +32,20 @@ export default async function CompareAudiencesPage({
   );
 
   return (
-    <main className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 py-6 sm:px-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-lg font-semibold text-on-surface">Comparar audiencias — {brand.name}</h1>
-        <Link href={`/c/${clientId}/b/${brandId}`} className="text-sm font-medium text-primary underline underline-offset-2">
-          Volver al espacio de trabajo
-        </Link>
+    <main className="mx-auto flex w-full max-w-[1200px] flex-col gap-8 px-4 py-8 sm:px-6 lg:px-8 lg:py-12">
+      <Link href={`/c/${clientId}/b/${brandId}`} className="w-fit text-sm font-medium text-on-surface underline underline-offset-4">
+        ← Volver al espacio de trabajo
+      </Link>
+      <header className="max-w-3xl">
+        <p className="text-xs font-medium uppercase tracking-[0.16em] text-muted-on">{brand.name} · Estrategia</p>
+        <h1 className="mt-2 text-4xl leading-tight text-on-surface sm:text-5xl">Comparar audiencias</h1>
+        <p className="mt-3 text-base text-muted-on">Posicionamiento, mensaje y creatividad de la última versión de cada ruta.</p>
+      </header>
+      <div className="rounded-[24px] bg-accent p-5 text-sm text-accent-on sm:p-6">
+        <span className="font-medium">{tracks.length} audiencias</span> · {tracks.filter((track) => track.latestProposal).length} con propuesta generada.
+        Cada versión conserva su estado de revisión; esta vista no equivale a una aprobación.
       </div>
-      <CompareAudiences tracks={tracks} productFacts={brand.productFacts} />
+      <CompareAudiences tracks={tracks} productFacts={brand.productFacts} basePath={`/c/${clientId}/b/${brandId}`} />
     </main>
   );
 }
