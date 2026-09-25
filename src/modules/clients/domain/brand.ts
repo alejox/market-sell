@@ -27,3 +27,18 @@ export interface Brand {
   createdAt: string;
   updatedAt: string;
 }
+
+export interface HypothesisApprovedForAdsError {
+  kind: "hypothesis_approved_for_ads";
+  factId: string;
+}
+
+/**
+ * Domain invariant: a `hypothesis` fact must never be cleared for ad use.
+ * Returns the first offending fact id, or null when every fact respects the
+ * rule. Callers (use cases) must check this before persisting brand edits.
+ */
+export function findHypothesisApprovedForAds(facts: ProductFact[]): HypothesisApprovedForAdsError | null {
+  const offending = facts.find((fact) => fact.provenance === "hypothesis" && fact.approvedForAds);
+  return offending ? { kind: "hypothesis_approved_for_ads", factId: offending.id } : null;
+}

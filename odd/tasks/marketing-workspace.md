@@ -54,7 +54,7 @@ client portal, billing, team permissions, image/video generation, deployment.
   seed (facts from ventex.app with provenance; unknowns flagged), isolation tests. — route: delegated (writer A)
 - [x] **T4** Generation: Gemini adapter, prompt builder (brief + facts + feedback + results,
   data delimiting), validation, revision mode, unavailable state + tests. — route: delegated (writer B)
-- [ ] **T5** Workspace UI: first screen (client/brand, brief view/edit, audience switch,
+- [x] **T5** Workspace UI: first screen (client/brand, brief view/edit, audience switch,
   generate/open proposal, compare tracks), proposal renderer with fact/assumption badges. — route: delegated (writer C)
 - [ ] **T6** Review workflow: submit, approve (approver + timestamp + version), request changes
   → new draft, archive, history, Markdown export marking approval status. — route: delegated (writer C)
@@ -244,6 +244,52 @@ See spec §9 (all ten). Tracked in T8 evidence.
     modified `src/modules/strategy/domain/proposal.ts`, `src/modules/review/domain/proposal-lifecycle.ts`,
     `src/modules/review/domain/proposal-lifecycle.test.ts`, `src/modules/strategy/infrastructure/scoped-isolation.test.ts`.
 
+- **T5** done. No landing page: `/` (`src/app/page.tsx`) awaits `ensureWorkspaceSeeded()` (renamed/exported
+  from the former private `ensureSeeded` in the container so a Server Component can read `repositories`
+  directly for a pure listing) and redirects to `/c/[clientId]/b/[brandId]` for the first seeded
+  client/brand. Audience selection is a `?audience=<id>` search param (`AudienceTabs`, plain `next/link`
+  segmented control, no client JS needed). `ClientBrandSelector` (client component, native `<select>`)
+  reads the real client/brand list via `repositories.clients.list()` / `listByClient` — only Ventex is
+  seeded, but it is not hardcoded.
+
+  New use cases (with tests): `updateBrand` (`src/modules/clients/application/use-cases/update-brand.ts`)
+  edits voice/constraints/assets/productFacts and enforces the domain invariant added to
+  `clients/domain/brand.ts` (`findHypothesisApprovedForAds` — a `hypothesis` fact can never be
+  `approvedForAds: true`); `updateAudience` edits pains/objections/hypotheses; `updateCampaignBrief` edits
+  objective/timeframe/valueProposition/budgetRange(min/max/COP)/missingInformation. All three only touch
+  their own repository — never proposals — so saving a brief can never affect an existing proposal version.
+
+  UI: atomic components under `src/components/{atoms,molecules,organisms}` (Badge/Button/fields/Card;
+  ClaimText/StatusMessage/RepeatableTextField/ClaimListField; BrandBriefSection/AudienceSection/
+  CampaignBriefSection each pairing a read-only view with a `<details>`-collapsed edit form —
+  `BrandEditForm`/`AudienceEditForm`/`CampaignBriefEditForm`, all client components using
+  `useActionState` against a bound Server Action prop, so `src/components` never imports a route's
+  actions module directly). `ProposalThreadSection` lists versions with state badges plus
+  `GenerateProposalForm` ("Generar propuesta"/"Generar nueva propuesta"); on success the action redirects
+  to the new version's page, on `unavailable`/`timeout`/`provider_error`/`invalid_output` it shows the
+  exact Spanish message inline (never template content presented as AI output).
+  `ProposalDocument` renders all 9 sections (claim basis badges via `ClaimText`, cited `factIds` resolved
+  to their statements, missing information and risks sections prominent, version/state/generation
+  metadata in the header). `CompareAudiences` (`/c/[clientId]/b/[brandId]/compare`) shows both tracks'
+  latest positioning/campaign concept/creative briefs side by side (`grid-cols-1 lg:grid-cols-2`, stacks
+  on mobile), or "Sin propuesta aún."
+
+  Server Actions live in the route's colocated `actions.ts` (`"use server"`), each validating input with
+  zod and calling a container-exposed use case — never an adapter. `ActionState`/`BoundFormAction` live in
+  `src/components/action-state.ts` (outside any `"use server"` file) so presentational components can
+  import the type without pulling in server-action module semantics; route Server Components bind
+  `scope`/id args via `.bind(null, ...)` before passing the action down as a plain prop.
+  `eslint.config.mjs` gained one rule override (`argsIgnorePattern`/`varsIgnorePattern: "^_"`) because a
+  Server Action's fixed `(prevState, formData)` shape sometimes leaves one arg intentionally unused.
+
+  - `npm run lint`: 0 errors, 0 warnings.
+  - `npm run typecheck`: clean.
+  - `npm test`: all use-case tests passing (see full count in T7 evidence — T5/T6/T7 landed together and
+    were verified once against the final combined tree; per-task commits are still split by file
+    ownership, see commit hashes below).
+  - New files: see `git show --stat` on this commit; key ones listed above.
+
 ## Next step
 
-T5 (writer C) — Workspace UI: first screen, proposal renderer with fact/assumption badges.
+T6 (writer C) — Review workflow: submit/approve/request-changes/archive, history, `iterateFromApproved`
+(the T4 decision gap), Markdown export + print page.

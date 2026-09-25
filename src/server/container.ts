@@ -28,6 +28,15 @@ import {
   createReviseProposal,
   type ReviseProposalInput,
 } from "@/modules/strategy/application/use-cases/revise-proposal";
+import { createUpdateBrand, type UpdateBrandInput } from "@/modules/clients/application/use-cases/update-brand";
+import {
+  createUpdateAudience,
+  type UpdateAudienceInput,
+} from "@/modules/strategy/application/use-cases/update-audience";
+import {
+  createUpdateCampaignBrief,
+  type UpdateCampaignBriefInput,
+} from "@/modules/strategy/application/use-cases/update-campaign-brief";
 
 const clients = new JsonClientRepository(collectionFilePath("clients"));
 const brands = new JsonBrandRepository(collectionFilePath("brands"));
@@ -63,13 +72,15 @@ let seedOnce: Promise<void> | null = null;
  * Runs the idempotent Ventex seed at most once per process, on whichever
  * request accesses the workspace first. Safe to call repeatedly — every
  * call after the first awaits the same in-flight (or settled) promise.
+ * Exported so Server Components can await it before reading `repositories`
+ * directly for a plain listing/detail view (no use case needed for a pure
+ * read of already-scoped data).
  */
-function ensureSeeded(): Promise<void> {
+export function ensureWorkspaceSeeded(): Promise<void> {
   if (!seedOnce) {
-    seedOnce = ensureVentexSeed(
-      { clients, brands, audiences, briefs },
-      { owner: process.env.OWNER_NAME || undefined },
-    ).then(() => undefined);
+    seedOnce = ensureVentexSeed({ clients, brands, audiences, briefs }, { owner: process.env.OWNER_NAME || undefined }).then(
+      () => undefined,
+    );
   }
   return seedOnce;
 }
@@ -97,14 +108,33 @@ const reviseProposalUseCase = createReviseProposal({
   ids,
 });
 
+const updateBrandUseCase = createUpdateBrand({ brands, clock });
+const updateAudienceUseCase = createUpdateAudience({ audiences, clock });
+const updateCampaignBriefUseCase = createUpdateCampaignBrief({ briefs, clock });
+
+async function withSeed<T>(run: () => Promise<T>): Promise<T> {
+  await ensureWorkspaceSeeded();
+  return run();
+}
+
 /** Ensures the Ventex seed exists before generating the first proposal for a fresh workspace. */
-export async function generateProposal(input: GenerateProposalInput) {
-  await ensureSeeded();
-  return generateProposalUseCase(input);
+export function generateProposal(input: GenerateProposalInput) {
+  return withSeed(() => generateProposalUseCase(input));
 }
 
 /** Ensures the Ventex seed exists before revising a proposal in a fresh workspace. */
-export async function reviseProposal(input: ReviseProposalInput) {
-  await ensureSeeded();
-  return reviseProposalUseCase(input);
+export function reviseProposal(input: ReviseProposalInput) {
+  return withSeed(() => reviseProposalUseCase(input));
+}
+
+export function updateBrand(input: UpdateBrandInput) {
+  return withSeed(() => updateBrandUseCase(input));
+}
+
+export function updateAudience(input: UpdateAudienceInput) {
+  return withSeed(() => updateAudienceUseCase(input));
+}
+
+export function updateCampaignBrief(input: UpdateCampaignBriefInput) {
+  return withSeed(() => updateCampaignBriefUseCase(input));
 }
