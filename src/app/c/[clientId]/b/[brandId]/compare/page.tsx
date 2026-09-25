@@ -2,12 +2,15 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ensureWorkspaceSeeded, repositories } from "@/server/container";
 import { CompareAudiences, type CompareAudienceTrack } from "@/components/organisms/CompareAudiences";
+import { SignOutButton } from "@/components/organisms/SignOutButton";
+import { requireOwner } from "@/shared/infrastructure/supabase/owner-auth";
 
 export default async function CompareAudiencesPage({
   params,
 }: {
   params: Promise<{ clientId: string; brandId: string }>;
 }) {
+  await requireOwner();
   await ensureWorkspaceSeeded();
   const { clientId, brandId } = await params;
   const scope = { clientId, brandId };
@@ -33,9 +36,12 @@ export default async function CompareAudiencesPage({
 
   return (
     <main className="mx-auto flex w-full max-w-[1200px] flex-col gap-8 px-4 py-8 sm:px-6 lg:px-8 lg:py-12">
-      <Link href={`/c/${clientId}/b/${brandId}`} className="w-fit text-sm font-medium text-on-surface underline underline-offset-4">
-        ← Volver al espacio de trabajo
-      </Link>
+      <div className="flex items-center justify-between gap-4">
+        <Link href={`/c/${clientId}/b/${brandId}`} className="w-fit text-sm font-medium text-on-surface underline underline-offset-4">
+          ← Volver al espacio de trabajo
+        </Link>
+        <SignOutButton />
+      </div>
       <header className="max-w-3xl">
         <p className="text-xs font-medium uppercase tracking-[0.16em] text-muted-on">{brand.name} · Estrategia</p>
         <h1 className="mt-2 text-4xl leading-tight text-on-surface sm:text-5xl">Comparar audiencias</h1>

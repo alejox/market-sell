@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { ensureWorkspaceSeeded, repositories } from "@/server/container";
 import { ProposalDocument } from "@/components/organisms/ProposalDocument";
 import { PrintTriggerButton } from "@/components/molecules/PrintTriggerButton";
+import { requireOwner } from "@/shared/infrastructure/supabase/owner-auth";
 
 /**
  * Print-friendly rendering of one proposal version — "PDF-ready" via the
@@ -15,6 +16,7 @@ export default async function ProposalPrintPage({
 }: {
   params: Promise<{ clientId: string; brandId: string; proposalId: string }>;
 }) {
+  await requireOwner();
   await ensureWorkspaceSeeded();
   const { clientId, brandId, proposalId } = await params;
   const scope = { clientId, brandId };

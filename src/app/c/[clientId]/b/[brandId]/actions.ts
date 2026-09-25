@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import * as container from "@/server/container";
 import type { GenerationError } from "@/modules/strategy/application/ports/proposal-generator";
 import type { ActionState } from "@/components/action-state";
+import { requireOwner } from "@/shared/infrastructure/supabase/owner-auth";
 
 export type { ActionState } from "@/components/action-state";
 
@@ -45,6 +46,7 @@ const INVALID_FORM_STATE: ActionState = { status: "error", message: "Los datos d
 /** Every field here is untrusted client input — a malformed payload must surface as a friendly error, never crash the action. */
 async function guardFormInput(run: () => Promise<ActionState>): Promise<ActionState> {
   try {
+    await requireOwner();
     return await run();
   } catch (error) {
     if (error instanceof z.ZodError || error instanceof SyntaxError) {
@@ -178,6 +180,7 @@ export async function generateProposalAction(
   _prevState: ActionState,
   _formData: FormData,
 ): Promise<ActionState> {
+  await requireOwner();
   const result = await container.generateProposal({ scope, briefId });
 
   if (!result.ok) {
@@ -197,6 +200,7 @@ export async function reviseProposalAction(
   _prevState: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
+  await requireOwner();
   const feedback = String(formData.get("feedback") ?? "");
 
   if (feedback.trim().length === 0) {
@@ -233,6 +237,7 @@ export async function iterateFromApprovedAction(
   _prevState: ActionState,
   _formData: FormData,
 ): Promise<ActionState> {
+  await requireOwner();
   const result = await container.iterateFromApproved({ scope, proposalId });
 
   if (!result.ok) {
@@ -259,6 +264,7 @@ export async function submitForReviewAction(
   _prevState: ActionState,
   _formData: FormData,
 ): Promise<ActionState> {
+  await requireOwner();
   const result = await container.submitForReview({ scope, proposalId });
 
   if (!result.ok) {
@@ -276,6 +282,7 @@ export async function approveProposalAction(
   _prevState: ActionState,
   _formData: FormData,
 ): Promise<ActionState> {
+  await requireOwner();
   const result = await container.approveProposal({ scope, proposalId });
 
   if (!result.ok) {
@@ -293,6 +300,7 @@ export async function archiveProposalAction(
   _prevState: ActionState,
   _formData: FormData,
 ): Promise<ActionState> {
+  await requireOwner();
   const result = await container.archiveProposal({ scope, proposalId });
 
   if (!result.ok) {

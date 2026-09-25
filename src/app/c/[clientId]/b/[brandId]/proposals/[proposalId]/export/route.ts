@@ -1,11 +1,15 @@
 import { NextResponse } from "next/server";
 import { ensureWorkspaceSeeded, repositories } from "@/server/container";
 import { renderProposalMarkdown } from "@/modules/strategy/application/export/render-proposal-markdown";
+import { isAuthenticatedOwner } from "@/shared/infrastructure/supabase/owner-auth";
 
 export async function GET(
   _request: Request,
   { params }: { params: Promise<{ clientId: string; brandId: string; proposalId: string }> },
 ) {
+  if (!(await isAuthenticatedOwner())) {
+    return NextResponse.json({ error: "No autorizado." }, { status: 401 });
+  }
   await ensureWorkspaceSeeded();
   const { clientId, brandId, proposalId } = await params;
   const scope = { clientId, brandId };

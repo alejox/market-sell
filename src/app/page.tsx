@@ -1,11 +1,13 @@
 import { redirect } from "next/navigation";
 import { ensureWorkspaceSeeded, repositories } from "@/server/container";
+import { requireOwner } from "@/shared/infrastructure/supabase/owner-auth";
 
 /**
  * No marketing landing page: this route only resolves the default
  * client/brand workspace (Ventex, seeded) and redirects into it.
  */
 export default async function Home() {
+  await requireOwner();
   await ensureWorkspaceSeeded();
 
   const clients = await repositories.clients.list();

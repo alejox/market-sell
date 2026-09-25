@@ -6,6 +6,8 @@ import { ReviewControls } from "@/components/organisms/ReviewControls";
 import { ReviewHistoryTimeline } from "@/components/organisms/ReviewHistoryTimeline";
 import { Badge } from "@/components/atoms/Badge";
 import { PROPOSAL_STATE_LABELS, PROPOSAL_STATE_TONES } from "@/components/labels";
+import { SignOutButton } from "@/components/organisms/SignOutButton";
+import { requireOwner } from "@/shared/infrastructure/supabase/owner-auth";
 import {
   submitForReviewAction,
   approveProposalAction,
@@ -19,6 +21,7 @@ export default async function ProposalPage({
 }: {
   params: Promise<{ clientId: string; brandId: string; proposalId: string }>;
 }) {
+  await requireOwner();
   await ensureWorkspaceSeeded();
   const { clientId, brandId, proposalId } = await params;
   const scope = { clientId, brandId };
@@ -36,9 +39,12 @@ export default async function ProposalPage({
 
   return (
     <main className="mx-auto flex w-full max-w-[1200px] flex-col gap-8 px-4 py-8 sm:px-6 lg:px-8 lg:py-12">
-      <Link href={basePath} className="w-fit text-sm font-medium text-on-surface underline underline-offset-4">
-        ← Volver al espacio de trabajo
-      </Link>
+      <div className="flex items-center justify-between gap-4">
+        <Link href={basePath} className="w-fit text-sm font-medium text-on-surface underline underline-offset-4">
+          ← Volver al espacio de trabajo
+        </Link>
+        <SignOutButton />
+      </div>
 
       <header className="rounded-[24px] bg-accent p-6 text-accent-on sm:p-8 lg:p-10">
         <p className="text-xs font-medium uppercase tracking-[0.16em]">{brand.name} · Propuesta de campaña</p>

@@ -12,6 +12,8 @@ import { ResultSnapshotsSection } from "@/components/organisms/ResultSnapshotsSe
 import { Badge } from "@/components/atoms/Badge";
 import { PROPOSAL_STATE_LABELS, PROPOSAL_STATE_TONES } from "@/components/labels";
 import { GenerateProposalForm } from "@/components/organisms/GenerateProposalForm";
+import { SignOutButton } from "@/components/organisms/SignOutButton";
+import { requireOwner } from "@/shared/infrastructure/supabase/owner-auth";
 import {
   updateBrandAction,
   updateAudienceAction,
@@ -27,6 +29,7 @@ export default async function WorkspacePage({
   params: Promise<{ clientId: string; brandId: string }>;
   searchParams: Promise<{ audience?: string }>;
 }) {
+  await requireOwner();
   await ensureWorkspaceSeeded();
 
   const { clientId, brandId } = await params;
@@ -78,7 +81,10 @@ export default async function WorkspacePage({
     <main className="mx-auto flex w-full max-w-[1200px] flex-col gap-10 px-4 py-8 sm:px-6 lg:px-8 lg:py-12">
       <header className="flex flex-col gap-7">
         <div className="flex flex-wrap items-end justify-between gap-5">
-          <ClientBrandSelector options={options} current={`${clientId}/b/${brandId}`} />
+          <div className="flex flex-wrap items-center gap-3">
+            <ClientBrandSelector options={options} current={`${clientId}/b/${brandId}`} />
+            <SignOutButton />
+          </div>
           <Link href={`${basePath}/compare`} className="inline-flex min-h-10 items-center rounded-full border border-border px-5 py-2 text-sm font-medium text-on-surface hover:bg-muted">
             Comparar audiencias
           </Link>
