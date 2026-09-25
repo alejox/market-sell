@@ -1,0 +1,40 @@
+import type { Scope } from "@/shared/scope";
+import type { CollectionStore } from "./collection-store";
+import { upsertById } from "./collection-store";
+
+interface ScopedEntity {
+  id: string;
+  clientId: string;
+  brandId: string;
+}
+
+function inScope(item: ScopedEntity, scope: Scope): boolean {
+  return item.clientId === scope.clientId && item.brandId === scope.brandId;
+}
+
+/**
+ * Generic implementation of the "list / getById / save, always scoped by
+ * client+brand" shape shared by the Audience, CampaignBrief, Proposal,
+ * ReviewDecision, and ResultSnapshot repositories. `getById` re-checks scope
+ * on the found record (not just on the query) so a caller can never read
+ * another brand's record by guessing or reusing an id — this is what makes
+ * cross-scope reads return nothing regardless of backend.
+ */
+export class ScopedRepository<T extends ScopedEntity> {
+  constructor(private readonly store: CollectionStore<T>) {}
+
+  async list(scope: Scope): Promise<T[]> {
+    const all = await this.store.readAll();
+    return all.filter((item) => inScope(item, scope));
+  }
+
+  async getById(scope: Scope, id: string): Promise<T | null> {
+    const all = await this.store.readAll();
+    const found = all.find((item) => item.id === id);
+    return found && inScope(found, scope) ? found : null;
+  }
+
+  async save(item: T): Promise<void> {
+    await this.store.mutate((items) => upsertById(items, item));
+  }
+}

@@ -50,7 +50,7 @@ client portal, billing, team permissions, image/video generation, deployment.
 - [x] **T2** Domain: entities (Client, Brand, Audience, CampaignBrief, Proposal, ReviewDecision,
   ResultSnapshot), proposal zod schema (9 sections, claim provenance labels), state machine and
   versioning rules + unit tests. — route: delegated (writer A)
-- [ ] **T3** Persistence: repository ports, JSON file adapter with client/brand scoping, Ventex
+- [x] **T3** Persistence: repository ports, JSON file adapter with client/brand scoping, Ventex
   seed (facts from ventex.app with provenance; unknowns flagged), isolation tests. — route: delegated (writer A)
 - [ ] **T4** Generation: Gemini adapter, prompt builder (brief + facts + feedback + results,
   data delimiting), validation, revision mode, unavailable state + tests. — route: delegated (writer B)
@@ -118,6 +118,41 @@ See spec §9 (all ten). Tracked in T8 evidence.
   - `npm run lint`: 0 errors, 0 warnings.
   - Commit `cbe9d2b` (foundation) precedes this task's commit.
 
+- **T3** done. Ports in `src/modules/<context>/application/ports/`: `ClientRepository` (no
+  scope — Client is the scope root), `BrandRepository` (scoped by `clientId` only,
+  `listByClient` is the one exception), `AudienceRepository`, `BriefRepository` (+
+  `getByAudience`), `ProposalRepository` (+ `listByThread`), `ReviewDecisionRepository`,
+  `ResultSnapshotRepository` (both + `listByProposal`) — all scoped by `{ clientId, brandId }`.
+  Shared infra in `src/shared/infrastructure/`: `CollectionStore<T>` interface implemented by
+  `JsonFileStore` (atomic write: temp file + `rename`; one in-process write queue per instance
+  serializes read-modify-write cycles) and `InMemoryStore` (tests); `ScopedRepository<T>` and
+  `IdentifiedRepository<T>` implement the list/getById/save logic once and are reused by every
+  JSON and in-memory adapter to avoid 14 near-duplicate classes — `getById` re-checks the found
+  record's `clientId`/`brandId` against the requested scope (not just matching by id), which is
+  what makes a cross-scope read return nothing rather than merely "not queried for". Seed
+  (`src/shared/infrastructure/seed/ventex-seed.ts`) is idempotent on a fixed Ventex client id
+  (`client-ventex-owner`), not on "store is empty" — safe once real external clients exist.
+  Seeds: client "Marca propia" (owner from `OWNER_NAME`), brand Ventex with voice/constraints in
+  Spanish, 13 product facts fetched live from https://www.ventex.app/ via WebFetch this session
+  (POS+inventory+finance integration, real-time inventory sync, IVA handling, payment methods,
+  low-stock alerts, categories/SKU, net profit, income/expense graphs, multi-user, appointments
+  module, commissions module, target segments, the three pricing tiers) — all
+  `provenance: "verified_website"`, `sourceUrl` set, `approvedForAds: false` (nothing is
+  ad-cleared by default); no other linked page had additional product detail worth a second
+  fetch. Two audiences (Stores / Barbershops & beauty salons, Colombia, pains/objections tagged
+  `basis: "hypothesis"`) and one draft brief per audience (objective: mejorar posicionamiento y
+  alcance en Instagram y Facebook; `budgetRange: null`; `missingInformation` populated from spec
+  §11's six gaps).
+  - `npm test`: 26/26 passing — added `json-file-store.test.ts` (missing-file read, round-trip,
+    20 concurrent mutations with none lost), `scoped-isolation.test.ts` (brand B cannot read
+    brand A's briefs/proposals by list, id, thread id, or audience id; same-client-different-
+    brand isolation), `ventex-seed.test.ts` (full first-call shape + idempotent second call that
+    does not duplicate or overwrite).
+  - `npm run typecheck`: clean.
+  - `npm run lint`: 0 errors, 0 warnings.
+  - `npm run build`: succeeded.
+  - Commit `45ada63` (domain) precedes this task's commit.
+
 ## Next step
 
-T3 (writer A) — persistence ports, JSON file adapter, Ventex seed.
+T4 (writer B) — Gemini adapter, prompt builder, generation use case.
