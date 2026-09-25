@@ -380,6 +380,19 @@ See spec §9 (all ten). Tracked in T8 evidence.
     Focused tests: `npm test` 80/80; runtime smoke test as above. Rollback boundary: this commit's
     result-entry UI/use cases and thread-scoped generation changes, without removing T5/T6.
 
+- **T8** in progress. Re-ran `npm test` (80/80), `npm run lint`, `npm run typecheck`, and
+  `npm run build` successfully against the committed T7 tree. In Chrome with a temporary
+  `GEMINI_API_KEY=` and isolated `DATA_DIR`, verified the workspace and comparison pages at
+  375px: both audience tracks render, comparison cards stack, and neither page overflows
+  horizontally (`documentElement.scrollWidth <= innerWidth`). Keyboard Tab reached the
+  client/brand selector and comparison link; Enter navigated to comparison and opened the
+  brief edit disclosure; Tab advanced through labeled Objective and Timeframe fields.
+  Switching to the beauty audience loaded its distinct brief. Attempting generation without
+  a key displayed the unavailable message and persisted no proposal. The review, export,
+  and result-entry screens were not browser-tested because this isolated run had no generated
+  proposal or Gemini key; T8 remains unchecked. `next dev` temporarily stripped the project
+  rules from `AGENTS.md`; restored that file from HEAD after stopping the server.
+
 ## Delivery note
 
 This branch (T5+T6+T7 combined, on top of T4's `9d48aae`) is **4,203 authored changed lines**
@@ -394,7 +407,6 @@ single PR) has not been made and no PR has been opened or requested.** All work 
 
 ## Next step
 
-T8 — Verification (already substantially covered above: lint/typecheck/test/build all clean, smoke test
-passed). Remaining for a full T8 pass: a manual keyboard-only and 375px-mobile walkthrough of the real
-browser UI (this session only verified server-rendered HTML via curl, not interactive keyboard/focus
-behavior), and the owner's decision on delivery strategy per the note above.
+T8 — Complete the browser walkthrough of proposal review, export, and manual result entry
+with a disposable proposal fixture or owner-provided Gemini key. The owner's delivery-strategy
+decision remains pending before any PR, per the note above.
