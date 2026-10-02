@@ -79,6 +79,18 @@ export class ScopedSupabaseRepository<Row extends object, T extends { id: string
     unwrapWrite(`${this.table}.save`, result);
   }
 
+  /** Deletes by id *and* scope, so an id belonging to another brand matches nothing (defense in depth on top of RLS). */
+  async delete(scope: Scope, id: string): Promise<void> {
+    const supabase = await this.getClient();
+    const result = await supabase
+      .from(this.table)
+      .delete()
+      .eq("client_id", scope.clientId)
+      .eq("brand_id", scope.brandId)
+      .eq("id", id);
+    unwrapWrite(`${this.table}.delete`, result);
+  }
+
   /**
    * Inserts only when no row with this id exists yet, using `ON CONFLICT DO
    * NOTHING` (`ignoreDuplicates: true`) at the database level — never a

@@ -7,6 +7,7 @@ import { InMemoryBriefRepository } from "@/modules/strategy/infrastructure/in-me
 import { InMemoryProposalRepository } from "@/modules/strategy/infrastructure/in-memory-proposal-repository";
 import { InMemoryReviewDecisionRepository } from "@/modules/review/infrastructure/in-memory-review-decision-repository";
 import { InMemoryResultSnapshotRepository } from "@/modules/results/infrastructure/in-memory-result-snapshot-repository";
+import { InMemoryDevTaskRepository } from "@/modules/tasks/infrastructure/in-memory-dev-task-repository";
 import type { Client } from "@/modules/clients/domain/client";
 import type { Brand } from "@/modules/clients/domain/brand";
 import type { ImportSourceData } from "./data-importer";
@@ -21,6 +22,7 @@ function makeTargets() {
     proposals: new InMemoryProposalRepository(),
     reviewDecisions: new InMemoryReviewDecisionRepository(),
     resultSnapshots: new InMemoryResultSnapshotRepository(),
+    devTasks: new InMemoryDevTaskRepository(),
   };
 }
 
@@ -61,6 +63,7 @@ function emptySource(overrides: Partial<ImportSourceData> = {}): ImportSourceDat
     proposals: [],
     reviewDecisions: [],
     resultSnapshots: [],
+    devTasks: [],
     ...overrides,
   };
 }
@@ -123,11 +126,11 @@ test("a rerun of a real import is idempotent: no duplicates, and nothing already
 
   assert.deepEqual(
     first.collections.map((c) => c.inserted),
-    [["client-ventex-owner"], ["brand-ventex"], [], [], [], [], []],
+    [["client-ventex-owner"], ["brand-ventex"], [], [], [], [], [], []],
   );
   assert.deepEqual(
     second.collections.map((c) => c.inserted),
-    [[], [], [], [], [], [], []],
+    [[], [], [], [], [], [], [], []],
   );
   assert.deepEqual(second.collections[0]?.skippedExisting, ["client-ventex-owner"]);
   assert.equal((await targets.clients.list()).length, 1, "rerun must not duplicate the client");

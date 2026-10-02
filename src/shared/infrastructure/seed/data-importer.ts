@@ -5,6 +5,7 @@ import type { BriefRepository } from "@/modules/strategy/application/ports/brief
 import type { ProposalRepository } from "@/modules/strategy/application/ports/proposal-repository";
 import type { ReviewDecisionRepository } from "@/modules/review/application/ports/review-decision-repository";
 import type { ResultSnapshotRepository } from "@/modules/results/application/ports/result-snapshot-repository";
+import type { DevTaskRepository } from "@/modules/tasks/application/ports/dev-task-repository";
 import type { Client } from "@/modules/clients/domain/client";
 import type { Brand } from "@/modules/clients/domain/brand";
 import type { Audience } from "@/modules/strategy/domain/audience";
@@ -12,6 +13,7 @@ import type { CampaignBrief } from "@/modules/strategy/domain/campaign-brief";
 import type { Proposal } from "@/modules/strategy/domain/proposal";
 import type { ReviewDecision } from "@/modules/review/domain/review-decision";
 import type { ResultSnapshot } from "@/modules/results/domain/result-snapshot";
+import type { DevTask } from "@/modules/tasks/domain/dev-task";
 import type { IdempotentSeedRepository } from "./ventex-seed";
 
 /**
@@ -29,6 +31,7 @@ export interface ImportTargets {
   proposals: ProposalRepository & IdempotentSeedRepository<Proposal>;
   reviewDecisions: ReviewDecisionRepository & IdempotentSeedRepository<ReviewDecision>;
   resultSnapshots: ResultSnapshotRepository & IdempotentSeedRepository<ResultSnapshot>;
+  devTasks: DevTaskRepository & IdempotentSeedRepository<DevTask>;
 }
 
 /** The source data read from the local `.data` JSON collections (see `read-json-collection.ts`). */
@@ -40,6 +43,7 @@ export interface ImportSourceData {
   proposals: Proposal[];
   reviewDecisions: ReviewDecision[];
   resultSnapshots: ResultSnapshot[];
+  devTasks: DevTask[];
 }
 
 export interface CollectionImportReport {
@@ -183,6 +187,15 @@ export async function importWorkspaceData(
         return (await targets.resultSnapshots.listByProposal(scope, snapshot.proposalId)).some((existing) => existing.id === snapshot.id);
       },
       (snapshot) => targets.resultSnapshots.insertIfAbsent(snapshot),
+      dryRun,
+    ),
+  );
+  collections.push(
+    await importCollection(
+      "dev_tasks",
+      source.devTasks,
+      async (task) => (await targets.devTasks.getById({ clientId: task.clientId, brandId: task.brandId }, task.id)) !== null,
+      (task) => targets.devTasks.insertIfAbsent(task),
       dryRun,
     ),
   );

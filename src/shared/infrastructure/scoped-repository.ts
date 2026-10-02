@@ -39,6 +39,15 @@ export class ScopedRepository<T extends ScopedEntity> {
   }
 
   /**
+   * Removes the record only when it exists *in this scope* — an id that
+   * belongs to another client/brand is left untouched, same as `getById`
+   * returning null for it.
+   */
+  async delete(scope: Scope, id: string): Promise<void> {
+    await this.store.mutate((items) => items.filter((item) => !(item.id === id && inScope(item, scope))));
+  }
+
+  /**
    * Inserts only when no row with this id exists yet (ids are globally
    * unique, not just unique within a scope — see the workspace schema
    * migration); an existing row is never modified, even to identical

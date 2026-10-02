@@ -46,7 +46,7 @@ export default async function ProposalPage({
         <SignOutButton />
       </div>
 
-      <header className="rounded-[24px] bg-accent p-6 text-accent-on sm:p-8 lg:p-10">
+      <header className="rounded-2xl bg-accent p-6 text-accent-on sm:p-8 lg:p-10">
         <p className="text-xs font-medium uppercase tracking-[0.16em]">{brand.name} · Propuesta de campaña</p>
         <h1 className="mt-3 text-4xl leading-tight sm:text-5xl">{audience?.segmentName ?? "Audiencia"}</h1>
         <div className="mt-5 flex flex-wrap items-center gap-3 text-sm">
@@ -78,7 +78,7 @@ export default async function ProposalPage({
           />
         </div>
         <aside className="order-first min-w-0 lg:order-last" aria-label="Acciones de revisión">
-          <section className="flex flex-col gap-4 rounded-[24px] border border-border bg-surface-raised p-5 lg:sticky lg:top-6">
+          <section className="flex flex-col gap-4 rounded-2xl border border-border bg-surface-raised p-5 lg:sticky lg:top-6">
             <div>
               <p className="text-xs font-medium uppercase tracking-[0.14em] text-muted-on">Decisión del propietario</p>
               <h2 className="mt-1 text-2xl text-on-surface">Revisión</h2>

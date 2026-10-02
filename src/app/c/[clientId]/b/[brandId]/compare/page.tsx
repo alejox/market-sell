@@ -47,7 +47,7 @@ export default async function CompareAudiencesPage({
         <h1 className="mt-2 text-4xl leading-tight text-on-surface sm:text-5xl">Comparar audiencias</h1>
         <p className="mt-3 text-base text-muted-on">Posicionamiento, mensaje y creatividad de la última versión de cada ruta.</p>
       </header>
-      <div className="rounded-[24px] bg-accent p-5 text-sm text-accent-on sm:p-6">
+      <div className="rounded-2xl bg-accent p-5 text-sm text-accent-on sm:p-6">
         <span className="font-medium">{tracks.length} audiencias</span> · {tracks.filter((track) => track.latestProposal).length} con propuesta generada.
         Cada versión conserva su estado de revisión; esta vista no equivale a una aprobación.
       </div>
