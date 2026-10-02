@@ -11,7 +11,7 @@ import type { UpdateTaskError } from "@/modules/tasks/application/use-cases/upda
 
 type Scope = { clientId: string; brandId: string };
 
-const tasksPath = (scope: Scope) => `/c/${scope.clientId}/b/${scope.brandId}/tareas`;
+const tasksPath = (scope: Scope) => `/c/${scope.clientId}/b/${scope.brandId}/organizacion`;
 
 function text(formData: FormData, field: string): string {
   const raw = formData.get(field);

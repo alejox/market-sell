@@ -27,13 +27,13 @@ export default async function TaskPage({
   }
 
   const assignees = knownAssignees(await repositories.devTasks.list(scope));
-  const tasksPath = `/c/${clientId}/b/${brandId}/tareas`;
+  const tasksPath = `/c/${clientId}/b/${brandId}/organizacion`;
 
   return (
     <main className="mx-auto flex w-full max-w-4xl flex-col gap-8 px-4 py-8 sm:px-6 lg:py-12">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <Link href={tasksPath} className="w-fit text-sm font-medium text-on-surface underline underline-offset-4">
-          ← Volver a Tareas
+          ← Volver a Organización
         </Link>
         <SignOutButton />
       </div>

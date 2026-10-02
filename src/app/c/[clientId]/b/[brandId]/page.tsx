@@ -86,9 +86,6 @@ export default async function WorkspacePage({
             <SignOutButton />
           </div>
           <div className="flex flex-wrap items-center gap-3">
-            <Link href={`${basePath}/tareas`} className="inline-flex min-h-10 items-center rounded-full border border-border px-5 py-2 text-sm font-medium text-on-surface hover:bg-muted">
-              Tareas
-            </Link>
             <Link href={`${basePath}/compare`} className="inline-flex min-h-10 items-center rounded-full border border-border px-5 py-2 text-sm font-medium text-on-surface hover:bg-muted">
               Comparar audiencias
             </Link>

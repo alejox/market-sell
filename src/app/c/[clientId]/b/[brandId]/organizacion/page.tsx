@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ensureWorkspaceSeeded, repositories } from "@/server/container";
 import { Card } from "@/components/atoms/Card";
@@ -13,7 +12,7 @@ import { localIsoDate } from "@/shared/local-date";
 import { requireOwner } from "@/shared/infrastructure/supabase/owner-auth";
 import { changeTaskStatusAction, createTaskAction } from "./actions";
 
-export const metadata = { title: "Tareas — Ventex Marketing" };
+export const metadata = { title: "Organización — Ventex" };
 
 export default async function TasksPage({
   params,
@@ -36,7 +35,7 @@ export default async function TasksPage({
 
   const view: TaskView = vista === "tabla" ? "tabla" : "tablero";
   const basePath = `/c/${clientId}/b/${brandId}`;
-  const tasksPath = `${basePath}/tareas`;
+  const tasksPath = `${basePath}/organizacion`;
   const today = localIsoDate(new Date());
 
   const allTasks = await repositories.devTasks.list(scope);
@@ -56,14 +55,11 @@ export default async function TasksPage({
     <main className="mx-auto flex w-full max-w-[1200px] flex-col gap-10 px-4 py-8 sm:px-6 lg:px-8 lg:py-12">
       <header className="flex flex-col gap-7">
         <div className="flex flex-wrap items-center justify-between gap-4">
-          <Link href={basePath} className="w-fit text-sm font-medium text-on-surface underline underline-offset-4">
-            ← Volver al espacio de trabajo
-          </Link>
+          <p className="text-xs font-medium uppercase tracking-[0.16em] text-muted-on">{brand.name} · Organización</p>
           <SignOutButton />
         </div>
         <div className="max-w-3xl">
-          <p className="mb-2 text-xs font-medium uppercase tracking-[0.16em] text-muted-on">{brand.name} · Desarrollo</p>
-          <h1 className="text-4xl leading-tight text-on-surface sm:text-5xl">Tareas</h1>
+          <h1 className="text-4xl leading-tight text-on-surface sm:text-5xl">Tareas de desarrollo</h1>
           <p className="mt-3 text-base text-muted-on">
             Cuaderno de trabajo del equipo: qué hay por desarrollar, quién lo lleva y en qué estado va.
           </p>
