@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { ensureWorkspaceSeeded, repositories } from "@/server/container";
+import { APP_NAME } from "@/components/app-name";
 import { Card } from "@/components/atoms/Card";
 import { NewTaskForm } from "@/components/organisms/NewTaskForm";
 import { SignOutButton } from "@/components/organisms/SignOutButton";
@@ -55,7 +56,7 @@ export default async function TasksPage({
     <main className="mx-auto flex w-full max-w-[1200px] flex-col gap-10 px-4 py-8 sm:px-6 lg:px-8 lg:py-12">
       <header className="flex flex-col gap-7">
         <div className="flex flex-wrap items-center justify-between gap-4">
-          <p className="text-xs font-medium uppercase tracking-[0.16em] text-muted-on">{brand.name} · Organización</p>
+          <p className="text-xs font-medium uppercase tracking-[0.16em] text-muted-on">{APP_NAME} · Organización</p>
           <SignOutButton />
         </div>
         <div className="max-w-3xl">
