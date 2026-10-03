@@ -7,7 +7,7 @@ import { SignOutButton } from "@/components/organisms/SignOutButton";
 import { requireOwner } from "@/shared/infrastructure/supabase/owner-auth";
 import { cancelInvitationAction, createInvitationAction } from "./actions";
 
-export const metadata = { title: "Equipo — Ventex" };
+export const metadata = { title: "Equipo — Devtecia" };
 
 export default async function TeamPage({ params }: { params: Promise<{ clientId: string; brandId: string }> }) {
   await requireOwner();

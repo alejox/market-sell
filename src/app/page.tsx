@@ -17,7 +17,7 @@ export default async function Home() {
     return (
       <main className="flex flex-1 flex-col items-center justify-center gap-2 px-6 py-24 text-center">
         <h1 className="text-lg font-semibold text-on-surface">No hay clientes configurados</h1>
-        <p className="text-sm text-muted-on">No se pudo inicializar el espacio de trabajo de Ventex.</p>
+        <p className="text-sm text-muted-on">No se pudo inicializar el espacio de trabajo de Devtecia.</p>
       </main>
     );
   }

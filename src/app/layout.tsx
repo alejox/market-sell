@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Ventex Marketing — Estratega",
+  title: "Devtecia Marketing — Estratega",
   description:
-    "Espacio de trabajo del estratega de marketing de Ventex: propuestas de campaña para revisión y aprobación del propietario.",
+    "Espacio de trabajo del estratega de marketing de Devtecia: propuestas de campaña para revisión y aprobación del propietario.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

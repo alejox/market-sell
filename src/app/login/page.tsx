@@ -7,7 +7,7 @@ export default async function LoginPage() {
   return (
     <main className="flex flex-1 items-center justify-center px-5 py-12">
       <section className="w-full max-w-md rounded-2xl border border-border bg-surface-raised p-7 shadow-sm sm:p-9">
-        <p className="text-xs font-medium uppercase tracking-[0.16em] text-muted-on">Ventex · Espacio privado</p>
+        <p className="text-xs font-medium uppercase tracking-[0.16em] text-muted-on">Devtecia · Espacio privado</p>
         <h1 className="mt-3 text-3xl text-on-surface">Ingresá a tu espacio</h1>
         <p className="mb-7 mt-3 text-sm leading-relaxed text-muted-on">Este espacio es solo para el equipo. Si te invitaron, abre el enlace de invitación.</p>
         <LoginForm />

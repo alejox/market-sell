@@ -55,6 +55,13 @@ export async function requireOwner(): Promise<void> {
   if (!(await isAuthenticatedOwner())) redirect("/login");
 }
 
+/** Like `requireOwner`, but also returns who is signed in (for per-user data such as personal notes). */
+export async function requireWorkspaceUser(): Promise<WorkspaceUser> {
+  const user = await getWorkspaceUser();
+  if (!user) redirect("/login");
+  return user;
+}
+
 /** Who to record as the approver / author of an action: the signed-in person's email. */
 export async function currentUserName(): Promise<string> {
   const user = await getWorkspaceUser();

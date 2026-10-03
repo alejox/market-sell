@@ -86,3 +86,8 @@ export const TASK_PRIORITY_TONES: Record<TaskPriority, BadgeTone> = {
   medium: "info",
   high: "danger",
 };
+
+export const PERSONAL_KIND_LABELS = {
+  task: "Tarea",
+  note: "Nota",
+} as const;

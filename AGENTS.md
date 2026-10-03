@@ -59,6 +59,17 @@ hash of an invitation token is stored, and memberships are created solely by
 app: do not add one. Team data is scoped by client only (membership belongs to
 the client, not a brand).
 
+### Personal notes
+
+"Mis notas" (`src/modules/personal`, migration
+`supabase/migrations/20261004120000_personal_items.sql`) holds each person's
+private tasks and notes. Rows are bound to `user_id = auth.uid()` (plus client
+membership): nobody else can read them, not even the owner. Every repository
+method takes the `userId` next to the `{ clientId, brandId }` scope, and Server
+Actions always take it from the session (`requireWorkspaceUser()`), never from
+form input. Every user starts with none. The workspace is branded "Devtecia";
+the seeded Ventex client/brand is the product being marketed and keeps its name.
+
 ## Facts vs hypotheses provenance
 
 Every product claim used in a proposal carries a `basis` /

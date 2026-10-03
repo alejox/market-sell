@@ -36,6 +36,7 @@ import type { ReviewDecisionRepository } from "@/modules/review/application/port
 import type { ResultSnapshotRepository } from "@/modules/results/application/ports/result-snapshot-repository";
 import type { DevTaskRepository } from "@/modules/tasks/application/ports/dev-task-repository";
 import type { TeamRepository } from "@/modules/team/application/ports/team-repository";
+import type { PersonalItemRepository } from "@/modules/personal/application/ports/personal-item-repository";
 import type { Client } from "@/modules/clients/domain/client";
 import type { Brand } from "@/modules/clients/domain/brand";
 import type { Audience } from "@/modules/strategy/domain/audience";
@@ -63,6 +64,8 @@ import { SupabaseDevTaskRepository } from "@/modules/tasks/infrastructure/supaba
 import { SupabaseTeamRepository } from "@/modules/team/infrastructure/supabase-team-repository";
 import { InMemoryTeamRepository } from "@/modules/team/infrastructure/in-memory-team-repository";
 import { NodeInvitationTokens } from "@/modules/team/infrastructure/node-invitation-tokens";
+import { SupabasePersonalItemRepository } from "@/modules/personal/infrastructure/supabase-personal-item-repository";
+import { InMemoryPersonalItemRepository } from "@/modules/personal/infrastructure/in-memory-personal-item-repository";
 import { GeminiProposalGenerator } from "@/modules/strategy/infrastructure/gemini-proposal-generator";
 import {
   createGenerateProposal,
@@ -112,6 +115,14 @@ import {
 import { createCreateTask, type CreateTaskInput } from "@/modules/tasks/application/use-cases/create-task";
 import { createUpdateTask, type UpdateTaskInput } from "@/modules/tasks/application/use-cases/update-task";
 import { createDeleteTask, type DeleteTaskInput } from "@/modules/tasks/application/use-cases/delete-task";
+import {
+  createCreatePersonalItem,
+  createDeletePersonalItem,
+  createUpdatePersonalItem,
+  type CreatePersonalItemInput,
+  type DeletePersonalItemInput,
+  type UpdatePersonalItemInput,
+} from "@/modules/personal/application/use-cases/personal-item-use-cases";
 import {
   createAcceptInvitation,
   createCancelInvitation,
@@ -185,6 +196,16 @@ function buildRepositories(): Repositories {
 const { clients, brands, audiences, briefs, proposals, reviewDecisions, resultSnapshots, devTasks } = buildRepositories();
 
 /**
+ * Personal tasks and notes are private per signed-in user and only make sense
+ * with real accounts, so, like the team, the only real adapter is Supabase;
+ * without it an in-memory stand-in keeps the pages renderable.
+ */
+const personalItems: PersonalItemRepository =
+  resolveRepositoryBackend(process.env) === "supabase"
+    ? new SupabasePersonalItemRepository(createSupabaseServerClient)
+    : new InMemoryPersonalItemRepository();
+
+/**
  * Team membership and invitations create real Supabase Auth accounts, so the
  * only real adapter is Supabase. Without it (local JSON development) an
  * in-memory stand-in keeps the pages renderable; nothing is persisted.
@@ -208,6 +229,7 @@ export const repositories = {
   reviewDecisions,
   resultSnapshots,
   devTasks,
+  personalItems,
 };
 
 /** True once a request has been served without a configured Gemini key. UI code can use this to show the "unavailable" state up front. */
@@ -283,6 +305,10 @@ const listResultSnapshotsUseCase = createListResultSnapshots({ resultSnapshots }
 const createTaskUseCase = createCreateTask({ tasks: devTasks, clock, ids });
 const updateTaskUseCase = createUpdateTask({ tasks: devTasks, clock });
 const deleteTaskUseCase = createDeleteTask({ tasks: devTasks });
+
+const createPersonalItemUseCase = createCreatePersonalItem({ items: personalItems, clock, ids });
+const updatePersonalItemUseCase = createUpdatePersonalItem({ items: personalItems, clock });
+const deletePersonalItemUseCase = createDeletePersonalItem({ items: personalItems });
 
 const invitationTokens = new NodeInvitationTokens();
 const teamDeps = { team, tokens: invitationTokens, clock, ids };
@@ -379,4 +405,16 @@ export function checkInvitation(input: { token: string }) {
 
 export function acceptInvitation(input: { token: string }) {
   return acceptInvitationUseCase(input);
+}
+
+export function createPersonalItem(input: CreatePersonalItemInput) {
+  return withSeed(() => createPersonalItemUseCase(input));
+}
+
+export function updatePersonalItem(input: UpdatePersonalItemInput) {
+  return withSeed(() => updatePersonalItemUseCase(input));
+}
+
+export function deletePersonalItem(input: DeletePersonalItemInput) {
+  return withSeed(() => deletePersonalItemUseCase(input));
 }

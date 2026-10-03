@@ -3,7 +3,7 @@ import { InvitationForms, JoinButton } from "@/components/organisms/InvitationFo
 import { createSupabaseServerClient } from "@/shared/infrastructure/supabase/server";
 import { joinAsCurrentUserAction, signInAndJoinAction, signUpAndJoinAction } from "./actions";
 
-export const metadata = { title: "Invitación — Ventex", robots: { index: false, follow: false } };
+export const metadata = { title: "Invitación — Devtecia", robots: { index: false, follow: false } };
 
 const DEAD_LINK_MESSAGES = {
   invalid: "Este enlace de invitación no es válido.",
@@ -30,12 +30,12 @@ export default async function InvitationPage({ params }: { params: Promise<{ tok
   return (
     <main className="flex flex-1 items-center justify-center px-5 py-12">
       <section className="w-full max-w-md rounded-2xl border border-border bg-surface-raised p-7 sm:p-9">
-        <p className="text-xs font-medium uppercase tracking-[0.16em] text-muted-on">Ventex · Invitación</p>
+        <p className="text-xs font-medium uppercase tracking-[0.16em] text-muted-on">Devtecia · Invitación</p>
         <h1 className="mt-3 text-3xl text-on-surface">Únete al equipo</h1>
         {status === "valid" ? (
           <>
             <p className="mb-7 mt-3 text-sm leading-relaxed text-muted-on">
-              Te invitaron a trabajar en el espacio de Ventex, con el mismo acceso que el resto del equipo.
+              Te invitaron a trabajar en el espacio de Devtecia, con el mismo acceso que el resto del equipo.
             </p>
             {email !== null ? (
               <JoinButton action={joinAsCurrentUserAction.bind(null, token)} email={email} />

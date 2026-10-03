@@ -6,16 +6,18 @@ import { usePathname } from "next/navigation";
 /**
  * Top-level area switch. A fixed-width sidebar from `md` up, a horizontal
  * strip above the content on narrow screens. Marketing owns every route under
- * the brand except `/organizacion` and `/equipo`.
+ * the brand except `/organizacion`, `/personal` and `/equipo`.
  */
 export function WorkspaceSidebar({ basePath }: { basePath: string }) {
   const pathname = usePathname();
   const inOrganization = pathname.startsWith(`${basePath}/organizacion`);
   const inTeam = pathname.startsWith(`${basePath}/equipo`);
+  const inPersonal = pathname.startsWith(`${basePath}/personal`);
 
   const items = [
-    { href: basePath, label: "Marketing", selected: !inOrganization && !inTeam },
+    { href: basePath, label: "Marketing", selected: !inOrganization && !inTeam && !inPersonal },
     { href: `${basePath}/organizacion`, label: "Organización", selected: inOrganization },
+    { href: `${basePath}/personal`, label: "Mis notas", selected: inPersonal },
     { href: `${basePath}/equipo`, label: "Equipo", selected: inTeam },
   ];
 
@@ -24,7 +26,7 @@ export function WorkspaceSidebar({ basePath }: { basePath: string }) {
       aria-label="Áreas del espacio de trabajo"
       className="border-b border-border bg-surface-raised print:hidden md:sticky md:top-0 md:h-screen md:w-56 md:shrink-0 md:self-start md:border-b-0 md:border-r"
     >
-      <p className="hidden px-6 pt-8 pb-4 text-xs font-medium uppercase tracking-widest text-muted-on md:block">Ventex</p>
+      <p className="hidden px-6 pt-8 pb-4 text-xs font-medium uppercase tracking-widest text-muted-on md:block">Devtecia</p>
       <ul className="flex gap-1 overflow-x-auto px-4 sm:px-6 md:flex-col md:px-3 md:pb-4">
         {items.map((item) => (
           <li key={item.label}>

@@ -12,7 +12,7 @@ import { localIsoDate } from "@/shared/local-date";
 import { requireOwner } from "@/shared/infrastructure/supabase/owner-auth";
 import { changeTaskStatusAction, createTaskAction } from "./actions";
 
-export const metadata = { title: "Organización — Ventex" };
+export const metadata = { title: "Organización — Devtecia" };
 
 export default async function TasksPage({
   params,
