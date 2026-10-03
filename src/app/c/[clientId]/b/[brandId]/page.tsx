@@ -85,9 +85,11 @@ export default async function WorkspacePage({
             <ClientBrandSelector options={options} current={`${clientId}/b/${brandId}`} />
             <SignOutButton />
           </div>
-          <Link href={`${basePath}/compare`} className="inline-flex min-h-10 items-center rounded-full border border-border px-5 py-2 text-sm font-medium text-on-surface hover:bg-muted">
-            Comparar audiencias
-          </Link>
+          <div className="flex flex-wrap items-center gap-3">
+            <Link href={`${basePath}/compare`} className="inline-flex min-h-10 items-center rounded-full border border-border px-5 py-2 text-sm font-medium text-on-surface hover:bg-muted">
+              Comparar audiencias
+            </Link>
+          </div>
         </div>
         <div className="max-w-3xl">
           <p className="mb-2 text-xs font-medium uppercase tracking-[0.16em] text-muted-on">Espacio de trabajo · {client.name}</p>
@@ -105,7 +107,7 @@ export default async function WorkspacePage({
         />
       </section>
 
-      <section aria-labelledby="focus-heading" className="rounded-[24px] bg-accent p-6 text-accent-on sm:p-8 lg:p-10">
+      <section aria-labelledby="focus-heading" className="rounded-2xl bg-accent p-6 text-accent-on sm:p-8 lg:p-10">
         <div className="flex flex-col gap-8 md:flex-row md:items-end md:justify-between">
           <div className="max-w-2xl">
             <p className="mb-3 text-xs font-medium uppercase tracking-[0.16em]">En foco · {selectedAudience.geography}</p>
@@ -159,7 +161,7 @@ export default async function WorkspacePage({
               {brief ? (
                 <CampaignBriefSection brief={brief} updateCampaignBriefAction={updateCampaignBriefAction.bind(null, scope, brief.id)} />
               ) : (
-                <div className="rounded-[24px] border border-border bg-surface-raised p-6 text-sm text-muted-on">
+                <div className="rounded-2xl border border-border bg-surface-raised p-6 text-sm text-muted-on">
                   No hay un brief de campaña configurado para esta audiencia.
                 </div>
               )}
@@ -173,7 +175,7 @@ export default async function WorkspacePage({
       </section>
 
       <section aria-label="Material de referencia" className="border-t border-border pt-7">
-        <details className="group rounded-[24px] border border-border bg-surface-raised p-5 sm:p-6">
+        <details className="group rounded-2xl border border-border bg-surface-raised p-5 sm:p-6">
           <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-on-surface [&::-webkit-details-marker]:hidden">
             <span>
               <span className="block text-xs font-medium uppercase tracking-[0.16em] text-muted-on">Material de referencia</span>

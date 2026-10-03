@@ -35,6 +35,7 @@ import { SupabaseBriefRepository } from "@/modules/strategy/infrastructure/supab
 import { SupabaseProposalRepository } from "@/modules/strategy/infrastructure/supabase-proposal-repository";
 import { SupabaseReviewDecisionRepository } from "@/modules/review/infrastructure/supabase-review-decision-repository";
 import { SupabaseResultSnapshotRepository } from "@/modules/results/infrastructure/supabase-result-snapshot-repository";
+import { SupabaseDevTaskRepository } from "@/modules/tasks/infrastructure/supabase-dev-task-repository";
 import type { Client } from "@/modules/clients/domain/client";
 import type { Brand } from "@/modules/clients/domain/brand";
 import type { Audience } from "@/modules/strategy/domain/audience";
@@ -42,6 +43,7 @@ import type { CampaignBrief } from "@/modules/strategy/domain/campaign-brief";
 import type { Proposal } from "@/modules/strategy/domain/proposal";
 import type { ReviewDecision } from "@/modules/review/domain/review-decision";
 import type { ResultSnapshot } from "@/modules/results/domain/result-snapshot";
+import type { DevTask } from "@/modules/tasks/domain/dev-task";
 
 async function readSourceData(): Promise<ImportSourceData> {
   return {
@@ -52,6 +54,7 @@ async function readSourceData(): Promise<ImportSourceData> {
     proposals: await readJsonCollection<Proposal>(collectionFilePath("proposals")),
     reviewDecisions: await readJsonCollection<ReviewDecision>(collectionFilePath("review-decisions")),
     resultSnapshots: await readJsonCollection<ResultSnapshot>(collectionFilePath("result-snapshots")),
+    devTasks: await readJsonCollection<DevTask>(collectionFilePath("dev-tasks")),
   };
 }
 
@@ -88,6 +91,7 @@ function buildTargets(getClient: () => Promise<SupabaseClient>): ImportTargets {
     proposals: new SupabaseProposalRepository(getClient),
     reviewDecisions: new SupabaseReviewDecisionRepository(getClient),
     resultSnapshots: new SupabaseResultSnapshotRepository(getClient),
+    devTasks: new SupabaseDevTaskRepository(getClient),
   };
 }
 

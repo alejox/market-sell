@@ -59,6 +59,7 @@ class FakeQueryBuilder implements PromiseLike<{ data: unknown; error: PostgrestE
   private readonly filters: Array<[string, unknown]> = [];
   private mode: "list" | "maybeSingle" = "list";
   private write: { kind: "upsert"; rows: Row[]; ignoreDuplicates: boolean } | null = null;
+  private deleting = false;
 
   constructor(private readonly table: FakeTable) {}
 
@@ -85,6 +86,11 @@ class FakeQueryBuilder implements PromiseLike<{ data: unknown; error: PostgrestE
     return this;
   }
 
+  delete(): this {
+    this.deleting = true;
+    return this;
+  }
+
   private matches(row: Row): boolean {
     return this.filters.every(([column, value]) => row[column] === value);
   }
@@ -93,6 +99,11 @@ class FakeQueryBuilder implements PromiseLike<{ data: unknown; error: PostgrestE
     if (this.write) {
       const { error, written } = this.table.upsert(this.write.rows, this.write.ignoreDuplicates);
       return error ? { data: null, error } : ok(written);
+    }
+    if (this.deleting) {
+      if (this.table.failWritesWith) return { data: null, error: this.table.failWritesWith };
+      this.table.rows = this.table.rows.filter((row) => !this.matches(row));
+      return ok(null);
     }
     const rows = this.table.rows.filter((row) => this.matches(row));
     if (this.mode === "maybeSingle") {

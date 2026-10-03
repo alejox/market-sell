@@ -34,6 +34,7 @@ import type { BriefRepository } from "@/modules/strategy/application/ports/brief
 import type { ProposalRepository } from "@/modules/strategy/application/ports/proposal-repository";
 import type { ReviewDecisionRepository } from "@/modules/review/application/ports/review-decision-repository";
 import type { ResultSnapshotRepository } from "@/modules/results/application/ports/result-snapshot-repository";
+import type { DevTaskRepository } from "@/modules/tasks/application/ports/dev-task-repository";
 import type { Client } from "@/modules/clients/domain/client";
 import type { Brand } from "@/modules/clients/domain/brand";
 import type { Audience } from "@/modules/strategy/domain/audience";
@@ -41,6 +42,7 @@ import type { CampaignBrief } from "@/modules/strategy/domain/campaign-brief";
 import type { Proposal } from "@/modules/strategy/domain/proposal";
 import type { ReviewDecision } from "@/modules/review/domain/review-decision";
 import type { ResultSnapshot } from "@/modules/results/domain/result-snapshot";
+import type { DevTask } from "@/modules/tasks/domain/dev-task";
 import { JsonClientRepository } from "@/modules/clients/infrastructure/json-client-repository";
 import { JsonBrandRepository } from "@/modules/clients/infrastructure/json-brand-repository";
 import { JsonAudienceRepository } from "@/modules/strategy/infrastructure/json-audience-repository";
@@ -48,6 +50,7 @@ import { JsonBriefRepository } from "@/modules/strategy/infrastructure/json-brie
 import { JsonProposalRepository } from "@/modules/strategy/infrastructure/json-proposal-repository";
 import { JsonReviewDecisionRepository } from "@/modules/review/infrastructure/json-review-decision-repository";
 import { JsonResultSnapshotRepository } from "@/modules/results/infrastructure/json-result-snapshot-repository";
+import { JsonDevTaskRepository } from "@/modules/tasks/infrastructure/json-dev-task-repository";
 import { SupabaseClientRepository } from "@/modules/clients/infrastructure/supabase-client-repository";
 import { SupabaseBrandRepository } from "@/modules/clients/infrastructure/supabase-brand-repository";
 import { SupabaseAudienceRepository } from "@/modules/strategy/infrastructure/supabase-audience-repository";
@@ -55,6 +58,7 @@ import { SupabaseBriefRepository } from "@/modules/strategy/infrastructure/supab
 import { SupabaseProposalRepository } from "@/modules/strategy/infrastructure/supabase-proposal-repository";
 import { SupabaseReviewDecisionRepository } from "@/modules/review/infrastructure/supabase-review-decision-repository";
 import { SupabaseResultSnapshotRepository } from "@/modules/results/infrastructure/supabase-result-snapshot-repository";
+import { SupabaseDevTaskRepository } from "@/modules/tasks/infrastructure/supabase-dev-task-repository";
 import { GeminiProposalGenerator } from "@/modules/strategy/infrastructure/gemini-proposal-generator";
 import {
   createGenerateProposal,
@@ -101,6 +105,9 @@ import {
   createListResultSnapshots,
   type ListResultSnapshotsInput,
 } from "@/modules/results/application/use-cases/list-result-snapshots";
+import { createCreateTask, type CreateTaskInput } from "@/modules/tasks/application/use-cases/create-task";
+import { createUpdateTask, type UpdateTaskInput } from "@/modules/tasks/application/use-cases/update-task";
+import { createDeleteTask, type DeleteTaskInput } from "@/modules/tasks/application/use-cases/delete-task";
 
 /**
  * Every repository the app depends on, plus `insertIfAbsent` (see
@@ -116,6 +123,7 @@ interface Repositories {
   proposals: ProposalRepository & IdempotentSeedRepository<Proposal>;
   reviewDecisions: ReviewDecisionRepository & IdempotentSeedRepository<ReviewDecision>;
   resultSnapshots: ResultSnapshotRepository & IdempotentSeedRepository<ResultSnapshot>;
+  devTasks: DevTaskRepository & IdempotentSeedRepository<DevTask>;
 }
 
 function buildSupabaseRepositories(): Repositories {
@@ -130,6 +138,7 @@ function buildSupabaseRepositories(): Repositories {
     proposals: new SupabaseProposalRepository(getClient),
     reviewDecisions: new SupabaseReviewDecisionRepository(getClient),
     resultSnapshots: new SupabaseResultSnapshotRepository(getClient),
+    devTasks: new SupabaseDevTaskRepository(getClient),
   };
 }
 
@@ -142,6 +151,7 @@ function buildJsonRepositories(): Repositories {
     proposals: new JsonProposalRepository(collectionFilePath("proposals")),
     reviewDecisions: new JsonReviewDecisionRepository(collectionFilePath("review-decisions")),
     resultSnapshots: new JsonResultSnapshotRepository(collectionFilePath("result-snapshots")),
+    devTasks: new JsonDevTaskRepository(collectionFilePath("dev-tasks")),
   };
 }
 
@@ -161,7 +171,7 @@ function buildRepositories(): Repositories {
   }
 }
 
-const { clients, brands, audiences, briefs, proposals, reviewDecisions, resultSnapshots } = buildRepositories();
+const { clients, brands, audiences, briefs, proposals, reviewDecisions, resultSnapshots, devTasks } = buildRepositories();
 
 /** Behind the ProposalGenerator port — swapping providers means changing only this line. */
 const generator = new GeminiProposalGenerator();
@@ -179,6 +189,7 @@ export const repositories = {
   proposals,
   reviewDecisions,
   resultSnapshots,
+  devTasks,
 };
 
 /** True once a request has been served without a configured Gemini key. UI code can use this to show the "unavailable" state up front. */
@@ -251,6 +262,10 @@ const listReviewHistoryUseCase = createListReviewHistory({ reviewDecisions });
 const recordResultSnapshotUseCase = createRecordResultSnapshot({ proposals, resultSnapshots, clock, ids });
 const listResultSnapshotsUseCase = createListResultSnapshots({ resultSnapshots });
 
+const createTaskUseCase = createCreateTask({ tasks: devTasks, clock, ids });
+const updateTaskUseCase = createUpdateTask({ tasks: devTasks, clock });
+const deleteTaskUseCase = createDeleteTask({ tasks: devTasks });
+
 /** The owner identity Server Actions should record as the approver / a manual result's `recordedBy`. */
 export function currentOwnerName(): string {
   return OWNER_NAME;
@@ -310,4 +325,16 @@ export function recordResultSnapshot(input: RecordResultSnapshotInput) {
 
 export function listResultSnapshots(input: ListResultSnapshotsInput) {
   return withSeed(() => listResultSnapshotsUseCase(input));
+}
+
+export function createTask(input: CreateTaskInput) {
+  return withSeed(() => createTaskUseCase(input));
+}
+
+export function updateTask(input: UpdateTaskInput) {
+  return withSeed(() => updateTaskUseCase(input));
+}
+
+export function deleteTask(input: DeleteTaskInput) {
+  return withSeed(() => deleteTaskUseCase(input));
 }

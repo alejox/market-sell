@@ -3,6 +3,7 @@ import type { ClaimBasis } from "@/modules/strategy/domain/claim";
 import type { FactProvenance } from "@/modules/clients/domain/brand";
 import type { ProposalState } from "@/modules/strategy/domain/proposal";
 import type { ResultSnapshotSource } from "@/modules/results/domain/result-snapshot";
+import type { TaskPriority, TaskStatus } from "@/modules/tasks/domain/dev-task";
 
 /** Pure presentational label/tone mappings — no I/O, safe to import from any component. */
 
@@ -58,4 +59,30 @@ export const CONTENT_FORMAT_LABELS: Record<string, string> = {
   short_video: "Video corto",
   carousel: "Carrusel",
   static_or_story: "Imagen / historia",
+};
+
+export const TASK_STATUS_LABELS: Record<TaskStatus, string> = {
+  todo: "Por hacer",
+  in_progress: "En progreso",
+  in_review: "En revisión",
+  done: "Hecho",
+};
+
+export const TASK_STATUS_TONES: Record<TaskStatus, BadgeTone> = {
+  todo: "neutral",
+  in_progress: "info",
+  in_review: "warning",
+  done: "success",
+};
+
+export const TASK_PRIORITY_LABELS: Record<TaskPriority, string> = {
+  low: "Baja",
+  medium: "Media",
+  high: "Alta",
+};
+
+export const TASK_PRIORITY_TONES: Record<TaskPriority, BadgeTone> = {
+  low: "neutral",
+  medium: "info",
+  high: "danger",
 };
