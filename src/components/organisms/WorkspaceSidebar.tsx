@@ -33,7 +33,7 @@ export function WorkspaceSidebar({ basePath }: { basePath: string }) {
             <Link
               href={item.href}
               aria-current={item.selected ? "page" : undefined}
-              className={`inline-flex min-h-11 w-full items-center rounded-full px-4 text-sm font-medium focus-visible:ring-2 focus-visible:ring-info ${
+              className={`inline-flex min-h-11 w-full items-center rounded-full px-3 text-sm md:px-4 font-medium focus-visible:ring-2 focus-visible:ring-info ${
                 item.selected ? "bg-accent text-accent-on" : "text-muted-on hover:bg-muted hover:text-on-surface"
               }`}
             >
