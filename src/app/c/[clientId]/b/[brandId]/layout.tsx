@@ -1,7 +1,7 @@
-import { WorkspaceTabs } from "@/components/organisms/WorkspaceTabs";
+import { WorkspaceSidebar } from "@/components/organisms/WorkspaceSidebar";
 
 /**
- * Brand-level shell: the two top-level areas of the workspace. "Marketing"
+ * Brand-level shell (sidebar + content): the two top-level areas of the workspace. "Marketing"
  * is the strategist's work (briefs, proposals, review); "Organización" is the
  * team's own work (development tasks and their notes).
  */
@@ -14,9 +14,9 @@ export default async function BrandLayout({
 }) {
   const { clientId, brandId } = await params;
   return (
-    <>
-      <WorkspaceTabs basePath={`/c/${clientId}/b/${brandId}`} />
-      {children}
-    </>
+    <div className="flex min-h-screen flex-col md:flex-row">
+      <WorkspaceSidebar basePath={`/c/${clientId}/b/${brandId}`} />
+      <div className="min-w-0 flex-1">{children}</div>
+    </div>
   );
 }
