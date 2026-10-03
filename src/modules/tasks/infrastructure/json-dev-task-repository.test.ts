@@ -17,7 +17,7 @@ function makeTask(overrides: Partial<DevTask> = {}): DevTask {
     title: "Tarea",
     status: "todo",
     priority: "medium",
-    assignee: null,
+    assigneeId: null,
     dueDate: null,
     notes: "",
     createdBy: "Owner",

@@ -6,6 +6,7 @@ import { Badge } from "@/components/atoms/Badge";
 import { AssigneeLabel, DueDate, PriorityBadge } from "@/components/organisms/TaskMeta";
 import { TASK_STATUS_LABELS, TASK_STATUS_TONES } from "@/components/labels";
 import { TASK_STATUSES, groupTasksByStatus, type DevTask, type TaskStatus } from "@/modules/tasks/domain/dev-task";
+import type { Person } from "@/modules/team/domain/profile";
 
 /**
  * Kanban view: one column per status. Cards open the task's notebook page and
@@ -16,11 +17,13 @@ export function TaskBoard({
   tasks,
   basePath,
   today,
+  people,
   changeStatusAction,
 }: {
   tasks: DevTask[];
   basePath: string;
   today: string;
+  people: Record<string, Person>;
   changeStatusAction: (taskId: string, status: string) => Promise<void>;
 }) {
   const [optimisticTasks, moveOptimistically] = useOptimistic(
@@ -108,7 +111,7 @@ export function TaskBoard({
                   </div>
                   <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-xs">
                     <dt className="text-muted-on">Responsable</dt>
-                    <dd><AssigneeLabel assignee={task.assignee} /></dd>
+                    <dd><AssigneeLabel assigneeId={task.assigneeId} people={people} /></dd>
                     <dt className="text-muted-on">Límite</dt>
                     <dd><DueDate task={task} today={today} /></dd>
                   </dl>

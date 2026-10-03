@@ -1,9 +1,12 @@
 import Link from "next/link";
+import type { Person } from "@/modules/team/domain/profile";
 
 export type TaskView = "tablero" | "tabla";
 
-/** Sentinel for the "no assignee" filter; real assignee names can't collide with it because it is URL-only. */
+/** URL-only sentinels; real filters are user ids (UUIDs), so they can't collide with these. */
 export const UNASSIGNED_FILTER = "sin-asignar";
+/** "My tasks": the server resolves it to the signed-in person. */
+export const MINE_FILTER = "mias";
 
 export function tasksHref(basePath: string, params: { vista: TaskView; asignado?: string | null }): string {
   const query = new URLSearchParams({ vista: params.vista });
@@ -36,7 +39,7 @@ export function TaskFilters({
   basePath: string;
   view: TaskView;
   assignee: string | null;
-  assignees: string[];
+  assignees: Person[];
   hasUnassigned: boolean;
 }) {
   return (
@@ -55,9 +58,12 @@ export function TaskFilters({
         <Pill href={tasksHref(basePath, { vista: view })} selected={assignee === null}>
           Todos
         </Pill>
-        {assignees.map((name) => (
-          <Pill key={name} href={tasksHref(basePath, { vista: view, asignado: name })} selected={assignee === name}>
-            {name}
+        <Pill href={tasksHref(basePath, { vista: view, asignado: MINE_FILTER })} selected={assignee === MINE_FILTER}>
+          Mis tareas
+        </Pill>
+        {assignees.map((person) => (
+          <Pill key={person.userId} href={tasksHref(basePath, { vista: view, asignado: person.userId })} selected={assignee === person.userId}>
+            {person.displayName}
           </Pill>
         ))}
         {hasUnassigned && (

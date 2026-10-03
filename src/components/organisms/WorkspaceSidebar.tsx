@@ -6,12 +6,12 @@ import { usePathname } from "next/navigation";
 /**
  * Top-level area switch. A fixed-width sidebar from `md` up, a horizontal
  * strip above the content on narrow screens. Marketing owns every route under
- * the brand except `/organizacion`, `/personal` and `/equipo`.
+ * the brand except `/organizacion`, `/personal`, `/equipo` and `/perfil` (which lives under Equipo).
  */
 export function WorkspaceSidebar({ basePath }: { basePath: string }) {
   const pathname = usePathname();
   const inOrganization = pathname.startsWith(`${basePath}/organizacion`);
-  const inTeam = pathname.startsWith(`${basePath}/equipo`);
+  const inTeam = pathname.startsWith(`${basePath}/equipo`) || pathname.startsWith(`${basePath}/perfil`);
   const inPersonal = pathname.startsWith(`${basePath}/personal`);
 
   const items = [

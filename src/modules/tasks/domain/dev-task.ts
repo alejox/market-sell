@@ -3,8 +3,8 @@
  * other domain record it carries both `clientId` and `brandId`, so one
  * brand's board never shows another brand's tasks.
  *
- * Assignees are free-text names (the team is not modelled as accounts in
- * this release); `null` means unassigned.
+ * The assignee is a team member of the same client, referenced by user id
+ * (their name comes from their profile); `null` means unassigned.
  */
 export const TASK_STATUSES = ["todo", "in_progress", "in_review", "done"] as const;
 export type TaskStatus = (typeof TASK_STATUSES)[number];
@@ -19,7 +19,7 @@ export interface DevTask {
   title: string;
   status: TaskStatus;
   priority: TaskPriority;
-  assignee: string | null;
+  assigneeId: string | null;
   /** ISO calendar date (`YYYY-MM-DD`), or null when the task has no deadline. */
   dueDate: string | null;
   /** The task's notebook page, written as lightweight Markdown. */
@@ -37,10 +37,10 @@ export function isTaskPriority(value: unknown): value is TaskPriority {
   return typeof value === "string" && (TASK_PRIORITIES as readonly string[]).includes(value);
 }
 
-/** Trims and collapses whitespace; an empty name means "unassigned". */
-export function normalizeAssignee(raw: string | null | undefined): string | null {
-  const name = (raw ?? "").replace(/\s+/g, " ").trim();
-  return name.length > 0 ? name : null;
+/** An empty id means "unassigned". */
+export function normalizeAssigneeId(raw: string | null | undefined): string | null {
+  const id = (raw ?? "").trim();
+  return id.length > 0 ? id : null;
 }
 
 const ISO_DATE = /^(\d{4})-(\d{2})-(\d{2})$/;
@@ -100,8 +100,8 @@ export interface TaskSummary {
   byStatus: Record<TaskStatus, number>;
   overdue: number;
   unassigned: number;
-  /** Open (not done) tasks per assignee, busiest first; unassigned tasks are excluded. */
-  openByAssignee: Array<{ assignee: string; open: number }>;
+  /** Open (not done) tasks per assignee id, busiest first; unassigned tasks are excluded. */
+  openByAssignee: Array<{ assigneeId: string; open: number }>;
 }
 
 export function summarizeTasks(tasks: readonly DevTask[], today: string): TaskSummary {
@@ -114,27 +114,16 @@ export function summarizeTasks(tasks: readonly DevTask[], today: string): TaskSu
     byStatus[task.status] += 1;
     if (isOverdue(task, today)) overdue += 1;
     if (task.status === "done") continue;
-    if (task.assignee === null) {
+    if (task.assigneeId === null) {
       unassigned += 1;
     } else {
-      open.set(task.assignee, (open.get(task.assignee) ?? 0) + 1);
+      open.set(task.assigneeId, (open.get(task.assigneeId) ?? 0) + 1);
     }
   }
 
   const openByAssignee = [...open.entries()]
-    .map(([assignee, count]) => ({ assignee, open: count }))
-    .sort((a, b) => b.open - a.open || a.assignee.localeCompare(b.assignee));
+    .map(([assigneeId, count]) => ({ assigneeId, open: count }))
+    .sort((a, b) => b.open - a.open || a.assigneeId.localeCompare(b.assigneeId));
 
   return { total: tasks.length, byStatus, overdue, unassigned, openByAssignee };
-}
-
-/** Distinct assignee names already in use, for the assignee suggestions. Case-insensitive de-duplication keeps the first spelling. */
-export function knownAssignees(tasks: readonly DevTask[]): string[] {
-  const seen = new Map<string, string>();
-  for (const task of tasks) {
-    if (task.assignee === null) continue;
-    const key = task.assignee.toLocaleLowerCase("es");
-    if (!seen.has(key)) seen.set(key, task.assignee);
-  }
-  return [...seen.values()].sort((a, b) => a.localeCompare(b, "es"));
 }

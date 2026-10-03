@@ -1,17 +1,19 @@
 import { notFound } from "next/navigation";
-import { ensureWorkspaceSeeded, listTeam, repositories } from "@/server/container";
+import Link from "next/link";
+import { ensureWorkspaceSeeded, listPeople, listTeam, repositories } from "@/server/container";
 import { APP_NAME } from "@/components/app-name";
+import { Avatar } from "@/components/atoms/Avatar";
 import { Card } from "@/components/atoms/Card";
 import { formatCalendarDate } from "@/components/format-date";
 import { InviteLinkForm } from "@/components/organisms/InviteLinkForm";
 import { SignOutButton } from "@/components/organisms/SignOutButton";
-import { requireOwner } from "@/shared/infrastructure/supabase/owner-auth";
+import { requireWorkspaceUser } from "@/shared/infrastructure/supabase/owner-auth";
 import { cancelInvitationAction, createInvitationAction } from "./actions";
 
 export const metadata = { title: "Equipo — Devtecia" };
 
 export default async function TeamPage({ params }: { params: Promise<{ clientId: string; brandId: string }> }) {
-  await requireOwner();
+  const user = await requireWorkspaceUser();
   await ensureWorkspaceSeeded();
 
   const { clientId, brandId } = await params;
@@ -19,7 +21,9 @@ export default async function TeamPage({ params }: { params: Promise<{ clientId:
   const brand = await repositories.brands.getById(clientId, brandId);
   if (!brand) notFound();
 
-  const { members, pending } = await listTeam({ clientId });
+  const [{ members, pending }, people] = await Promise.all([listTeam({ clientId }), listPeople({ clientId })]);
+  const peopleById = new Map(people.map((person) => [person.userId, person]));
+  const profilePath = `/c/${clientId}/b/${brandId}/perfil`;
 
   return (
     <main className="mx-auto flex w-full max-w-[1200px] flex-col gap-10 px-4 py-8 sm:px-6 lg:px-8 lg:py-12">
@@ -49,12 +53,34 @@ export default async function TeamPage({ params }: { params: Promise<{ clientId:
           </Card>
         ) : (
           <ul className="flex flex-col divide-y divide-border rounded-2xl border border-border bg-surface-raised">
-            {members.map((member) => (
-              <li key={member.userId} className="flex flex-wrap items-center justify-between gap-2 px-5 py-4 text-sm">
-                <span className="text-on-surface">{member.email || "Sin correo"}</span>
-                <span className="text-muted-on">Desde {formatCalendarDate(member.joinedAt.slice(0, 10))}</span>
-              </li>
-            ))}
+            {members.map((member) => {
+              const person = peopleById.get(member.userId);
+              const name = person?.displayName ?? member.email;
+              return (
+                <li key={member.userId} className="flex flex-wrap items-center justify-between gap-3 px-5 py-4 text-sm">
+                  <span className="flex min-w-0 items-center gap-3">
+                    <Avatar name={name} size="md" />
+                    <span className="flex min-w-0 flex-col">
+                      <span className="truncate font-medium text-on-surface">
+                        {name}
+                        {member.userId === user.id && <span className="font-normal text-muted-on"> · Tú</span>}
+                      </span>
+                      <span className="truncate text-muted-on">
+                        {[person?.jobTitle, member.email].filter(Boolean).join(" · ")}
+                      </span>
+                    </span>
+                  </span>
+                  <span className="flex items-center gap-4 text-muted-on">
+                    Desde {formatCalendarDate(member.joinedAt.slice(0, 10))}
+                    {member.userId === user.id && (
+                      <Link href={profilePath} className="font-medium text-on-surface underline underline-offset-4">
+                        Editar mi perfil
+                      </Link>
+                    )}
+                  </span>
+                </li>
+              );
+            })}
           </ul>
         )}
       </section>

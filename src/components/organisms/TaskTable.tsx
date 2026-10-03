@@ -2,6 +2,7 @@ import Link from "next/link";
 import { TaskStatusSelect } from "@/components/molecules/TaskStatusSelect";
 import { AssigneeLabel, DueDate, PriorityBadge } from "@/components/organisms/TaskMeta";
 import { compareTasks, type DevTask } from "@/modules/tasks/domain/dev-task";
+import type { Person } from "@/modules/team/domain/profile";
 
 const STATUS_ORDER = { todo: 0, in_progress: 1, in_review: 2, done: 3 } as const;
 
@@ -10,11 +11,13 @@ export function TaskTable({
   tasks,
   basePath,
   today,
+  people,
   changeStatusAction,
 }: {
   tasks: DevTask[];
   basePath: string;
   today: string;
+  people: Record<string, Person>;
   changeStatusAction: (taskId: string, status: string) => Promise<void>;
 }) {
   const rows = [...tasks].sort((a, b) => STATUS_ORDER[a.status] - STATUS_ORDER[b.status] || compareTasks(a, b));
@@ -43,7 +46,7 @@ export function TaskTable({
               <td className="px-3 py-3">
                 <TaskStatusSelect taskTitle={task.title} status={task.status} action={changeStatusAction.bind(null, task.id)} />
               </td>
-              <td className="px-3 py-3"><AssigneeLabel assignee={task.assignee} /></td>
+              <td className="px-3 py-3"><AssigneeLabel assigneeId={task.assigneeId} people={people} /></td>
               <td className="px-3 py-3"><PriorityBadge priority={task.priority} /></td>
               <td className="px-5 py-3"><DueDate task={task} today={today} /></td>
             </tr>

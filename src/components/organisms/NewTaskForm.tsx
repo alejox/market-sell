@@ -7,9 +7,10 @@ import { StatusMessage } from "@/components/molecules/StatusMessage";
 import { IDLE_ACTION_STATE, type BoundFormAction } from "@/components/action-state";
 import { TASK_PRIORITY_LABELS, TASK_STATUS_LABELS } from "@/components/labels";
 import { TASK_PRIORITIES, TASK_STATUSES } from "@/modules/tasks/domain/dev-task";
+import type { Person } from "@/modules/team/domain/profile";
 
 /** Creates a task. Notes are written afterwards on the task's own page. */
-export function NewTaskForm({ action, assignees }: { action: BoundFormAction; assignees: string[] }) {
+export function NewTaskForm({ action, people }: { action: BoundFormAction; people: Person[] }) {
   const [state, formAction, pending] = useActionState(action, IDLE_ACTION_STATE);
 
   return (
@@ -17,14 +18,12 @@ export function NewTaskForm({ action, assignees }: { action: BoundFormAction; as
       <TextField id="new-task-title" name="title" label="Título" required maxLength={200} placeholder="Qué hay que desarrollar" />
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="flex flex-col gap-2">
-          <TextField id="new-task-assignee" name="assignee" label="Responsable" list="new-task-assignees" maxLength={80} autoComplete="off" />
-          <datalist id="new-task-assignees">
-            {assignees.map((name) => (
-              <option key={name} value={name} />
-            ))}
-          </datalist>
-        </div>
+        <SelectField id="new-task-assignee" name="assigneeId" label="Responsable" defaultValue="">
+          <option value="">Sin asignar</option>
+          {people.map((person) => (
+            <option key={person.userId} value={person.userId}>{person.displayName}</option>
+          ))}
+        </SelectField>
         <SelectField id="new-task-status" name="status" label="Estado" defaultValue="todo">
           {TASK_STATUSES.map((status) => (
             <option key={status} value={status}>{TASK_STATUS_LABELS[status]}</option>

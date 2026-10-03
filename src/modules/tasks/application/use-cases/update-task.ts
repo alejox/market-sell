@@ -1,9 +1,10 @@
 import { err, ok, type Result } from "@/shared/result";
 import type { Scope } from "@/shared/scope";
 import type { Clock } from "@/shared/application/ports/clock";
+import type { AssigneeDirectory } from "@/modules/tasks/application/ports/assignee-directory";
 import type { DevTaskRepository } from "@/modules/tasks/application/ports/dev-task-repository";
 import {
-  normalizeAssignee,
+  normalizeAssigneeId,
   normalizeDueDate,
   type DevTask,
   type TaskPriority,
@@ -15,7 +16,7 @@ export interface TaskPatch {
   title?: string;
   status?: TaskStatus;
   priority?: TaskPriority;
-  assignee?: string | null;
+  assigneeId?: string | null;
   dueDate?: string | null;
   notes?: string;
 }
@@ -26,10 +27,11 @@ export interface UpdateTaskInput {
   patch: TaskPatch;
 }
 
-export type UpdateTaskError = { kind: "task_not_found" } | { kind: "title_required" } | { kind: "invalid_due_date" };
+export type UpdateTaskError = { kind: "task_not_found" } | { kind: "title_required" } | { kind: "invalid_due_date" } | { kind: "assignee_not_member" };
 
 export interface UpdateTaskDependencies {
   tasks: DevTaskRepository;
+  assignees: AssigneeDirectory;
   clock: Clock;
 }
 
@@ -57,7 +59,14 @@ export function createUpdateTask(deps: UpdateTaskDependencies) {
     }
     if (patch.status !== undefined) next.status = patch.status;
     if (patch.priority !== undefined) next.priority = patch.priority;
-    if (patch.assignee !== undefined) next.assignee = normalizeAssignee(patch.assignee);
+    if (patch.assigneeId !== undefined) {
+      const assigneeId = normalizeAssigneeId(patch.assigneeId);
+      // Only a change needs checking: an existing assignee stays valid (members are never removed).
+      if (assigneeId !== null && assigneeId !== current.assigneeId && !(await deps.assignees.isMember(current.clientId, assigneeId))) {
+        return err({ kind: "assignee_not_member" });
+      }
+      next.assigneeId = assigneeId;
+    }
     if (patch.dueDate !== undefined) {
       const dueDate = normalizeDueDate(patch.dueDate);
       if (dueDate === "invalid") {

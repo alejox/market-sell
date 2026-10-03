@@ -23,24 +23,27 @@ class SequentialIds {
   }
 }
 
+const MEMBERS = new Set(["client-1:u-ana", "client-1:u-luis"]);
+const assignees = { isMember: async (clientId: string, userId: string) => MEMBERS.has(`${clientId}:${userId}`) };
+
 function setup() {
   const tasks = new InMemoryDevTaskRepository();
   const clock = new SteppingClock();
-  const createTask = createCreateTask({ tasks, clock, ids: new SequentialIds() });
-  const updateTask = createUpdateTask({ tasks, clock });
+  const createTask = createCreateTask({ tasks, assignees, clock, ids: new SequentialIds() });
+  const updateTask = createUpdateTask({ tasks, assignees, clock });
   const deleteTask = createDeleteTask({ tasks });
   return { tasks, createTask, updateTask, deleteTask };
 }
 
-test("createTask saves a scoped task with defaults and a normalized title/assignee", async () => {
+test("createTask saves a scoped task with defaults and a normalized title and a member as assignee", async () => {
   const { tasks, createTask } = setup();
 
-  const result = await createTask({ scope: SCOPE, title: "  Migrar base  ", assignee: "  Ana  ", createdBy: "Owner" });
+  const result = await createTask({ scope: SCOPE, title: "  Migrar base  ", assigneeId: "  u-ana  ", createdBy: "Owner" });
 
   assert.equal(result.ok, true);
   if (!result.ok) return;
   assert.equal(result.value.title, "Migrar base");
-  assert.equal(result.value.assignee, "Ana");
+  assert.equal(result.value.assigneeId, "u-ana");
   assert.equal(result.value.status, "todo");
   assert.equal(result.value.priority, "medium");
   assert.equal(result.value.dueDate, null);
@@ -63,14 +66,14 @@ test("createTask rejects a blank title and an invalid deadline without saving", 
 
 test("updateTask moves a task between columns, reassigns it and keeps unrelated fields", async () => {
   const { createTask, updateTask } = setup();
-  const created = await createTask({ scope: SCOPE, title: "Login", assignee: "Ana", dueDate: "2026-10-10", createdBy: "Owner" });
+  const created = await createTask({ scope: SCOPE, title: "Login", assigneeId: "u-ana", dueDate: "2026-10-10", createdBy: "Owner" });
   assert.ok(created.ok);
 
-  const moved = await updateTask({ scope: SCOPE, taskId: created.value.id, patch: { status: "in_progress", assignee: "Luis" } });
+  const moved = await updateTask({ scope: SCOPE, taskId: created.value.id, patch: { status: "in_progress", assigneeId: "u-luis" } });
 
   assert.ok(moved.ok);
   assert.equal(moved.value.status, "in_progress");
-  assert.equal(moved.value.assignee, "Luis");
+  assert.equal(moved.value.assigneeId, "u-luis");
   assert.equal(moved.value.dueDate, "2026-10-10");
   assert.equal(moved.value.title, "Login");
   assert.notEqual(moved.value.updatedAt, created.value.updatedAt);
@@ -79,17 +82,17 @@ test("updateTask moves a task between columns, reassigns it and keeps unrelated 
 
 test("updateTask: null clears the assignee and deadline, undefined leaves them", async () => {
   const { createTask, updateTask } = setup();
-  const created = await createTask({ scope: SCOPE, title: "Login", assignee: "Ana", dueDate: "2026-10-10", createdBy: "Owner" });
+  const created = await createTask({ scope: SCOPE, title: "Login", assigneeId: "u-ana", dueDate: "2026-10-10", createdBy: "Owner" });
   assert.ok(created.ok);
 
   const kept = await updateTask({ scope: SCOPE, taskId: created.value.id, patch: { notes: "# Plan" } });
   assert.ok(kept.ok);
-  assert.equal(kept.value.assignee, "Ana");
+  assert.equal(kept.value.assigneeId, "u-ana");
   assert.equal(kept.value.notes, "# Plan");
 
-  const cleared = await updateTask({ scope: SCOPE, taskId: created.value.id, patch: { assignee: null, dueDate: "" } });
+  const cleared = await updateTask({ scope: SCOPE, taskId: created.value.id, patch: { assigneeId: null, dueDate: "" } });
   assert.ok(cleared.ok);
-  assert.equal(cleared.value.assignee, null);
+  assert.equal(cleared.value.assigneeId, null);
   assert.equal(cleared.value.dueDate, null);
 });
 
@@ -129,4 +132,26 @@ test("deleteTask removes only the targeted task", async () => {
 
   assert.equal(result.ok, true);
   assert.deepEqual((await tasks.list(SCOPE)).map((t) => t.id), [b.value.id]);
+});
+
+test("createTask rejects an assignee who is not a member of the client", async () => {
+  const { tasks, createTask } = setup();
+
+  const stranger = await createTask({ scope: SCOPE, title: "x", assigneeId: "u-desconocido", createdBy: "Owner" });
+
+  assert.deepEqual(stranger, { ok: false, error: { kind: "assignee_not_member" } });
+  assert.deepEqual(await tasks.list(SCOPE), []);
+});
+
+test("updateTask rejects reassigning to a non-member but keeps an existing assignee untouched", async () => {
+  const { tasks, createTask, updateTask } = setup();
+  const created = await createTask({ scope: SCOPE, title: "Login", assigneeId: "u-ana", createdBy: "Owner" });
+  assert.ok(created.ok);
+
+  const rejected = await updateTask({ scope: SCOPE, taskId: created.value.id, patch: { assigneeId: "u-desconocido" } });
+  assert.deepEqual(rejected, { ok: false, error: { kind: "assignee_not_member" } });
+  assert.equal((await tasks.getById(SCOPE, created.value.id))?.assigneeId, "u-ana");
+
+  const same = await updateTask({ scope: SCOPE, taskId: created.value.id, patch: { assigneeId: "u-ana", status: "done" } });
+  assert.ok(same.ok);
 });

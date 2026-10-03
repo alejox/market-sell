@@ -8,6 +8,7 @@ import { NotesEditor } from "@/components/organisms/NotesEditor";
 import { IDLE_ACTION_STATE, type BoundFormAction } from "@/components/action-state";
 import { TASK_PRIORITY_LABELS, TASK_STATUS_LABELS } from "@/components/labels";
 import { TASK_PRIORITIES, TASK_STATUSES, type DevTask } from "@/modules/tasks/domain/dev-task";
+import type { Person } from "@/modules/team/domain/profile";
 
 /**
  * One task's page: its properties (state, owner, priority, deadline) and the
@@ -16,11 +17,11 @@ import { TASK_PRIORITIES, TASK_STATUSES, type DevTask } from "@/modules/tasks/do
  */
 export function TaskEditor({
   task,
-  assignees,
+  people,
   action,
 }: {
   task: DevTask;
-  assignees: string[];
+  people: Person[];
   action: BoundFormAction;
 }) {
   const [state, formAction, pending] = useActionState(action, IDLE_ACTION_STATE);
@@ -34,22 +35,12 @@ export function TaskEditor({
             <option key={status} value={status}>{TASK_STATUS_LABELS[status]}</option>
           ))}
         </SelectField>
-        <div className="flex flex-col gap-2">
-          <TextField
-            id="task-assignee"
-            name="assignee"
-            label="Responsable"
-            list="task-assignees"
-            maxLength={80}
-            autoComplete="off"
-            defaultValue={task.assignee ?? ""}
-          />
-          <datalist id="task-assignees">
-            {assignees.map((name) => (
-              <option key={name} value={name} />
-            ))}
-          </datalist>
-        </div>
+        <SelectField id="task-assignee" name="assigneeId" label="Responsable" defaultValue={task.assigneeId ?? ""}>
+          <option value="">Sin asignar</option>
+          {people.map((person) => (
+            <option key={person.userId} value={person.userId}>{person.displayName}</option>
+          ))}
+        </SelectField>
         <SelectField id="task-priority" name="priority" label="Prioridad" defaultValue={task.priority}>
           {TASK_PRIORITIES.map((priority) => (
             <option key={priority} value={priority}>{TASK_PRIORITY_LABELS[priority]}</option>

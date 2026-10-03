@@ -37,6 +37,8 @@ function describeError(error: CreateTaskError | UpdateTaskError): string {
       return "La fecha límite no es válida.";
     case "task_not_found":
       return "No se encontró la tarea.";
+    case "assignee_not_member":
+      return "La persona elegida no forma parte del equipo.";
   }
 }
 
@@ -48,7 +50,7 @@ export async function createTaskAction(scope: Scope, _prevState: ActionState, fo
     title: text(formData, "title"),
     status: statusField(formData),
     priority: priorityField(formData),
-    assignee: text(formData, "assignee"),
+    assigneeId: text(formData, "assigneeId"),
     dueDate: text(formData, "dueDate"),
     createdBy: await currentUserName(),
   });
@@ -76,7 +78,7 @@ export async function updateTaskAction(
       title: text(formData, "title"),
       status: statusField(formData),
       priority: priorityField(formData),
-      assignee: text(formData, "assignee"),
+      assigneeId: text(formData, "assigneeId"),
       dueDate: text(formData, "dueDate"),
       notes: text(formData, "notes"),
     },

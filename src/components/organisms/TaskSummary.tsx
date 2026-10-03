@@ -1,9 +1,11 @@
+import { Avatar } from "@/components/atoms/Avatar";
 import { Card } from "@/components/atoms/Card";
 import { TASK_STATUS_LABELS } from "@/components/labels";
 import { TASK_STATUSES, type TaskSummary as Summary } from "@/modules/tasks/domain/dev-task";
+import type { Person } from "@/modules/team/domain/profile";
 
 /** Dashboard header for the notebook: how many tasks sit in each state, what needs attention, and who is carrying what. */
-export function TaskSummary({ summary }: { summary: Summary }) {
+export function TaskSummary({ summary, people }: { summary: Summary; people: Record<string, Person> }) {
   const busiest = Math.max(1, ...summary.openByAssignee.map((entry) => entry.open));
 
   return (
@@ -38,8 +40,11 @@ export function TaskSummary({ summary }: { summary: Summary }) {
           ) : (
             <ul className="flex flex-col gap-3">
               {summary.openByAssignee.map((entry) => (
-                <li key={entry.assignee} className="grid grid-cols-[minmax(0,8rem)_1fr_auto] items-center gap-3 text-sm">
-                  <span className="truncate text-on-surface">{entry.assignee}</span>
+                <li key={entry.assigneeId} className="grid grid-cols-[minmax(0,9rem)_1fr_auto] items-center gap-3 text-sm">
+                  <span className="flex min-w-0 items-center gap-2 text-on-surface">
+                    <Avatar name={people[entry.assigneeId]?.displayName ?? "?"} />
+                    <span className="truncate">{people[entry.assigneeId]?.displayName ?? "Persona desconocida"}</span>
+                  </span>
                   <span aria-hidden="true" className="h-2 rounded-full bg-muted">
                     <span className="block h-2 rounded-full bg-primary" style={{ width: `${(entry.open / busiest) * 100}%` }} />
                   </span>

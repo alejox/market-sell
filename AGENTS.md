@@ -59,6 +59,16 @@ hash of an invitation token is stored, and memberships are created solely by
 app: do not add one. Team data is scoped by client only (membership belongs to
 the client, not a brand).
 
+### People and assignment
+
+A team member's `profiles` row (name and job title; `src/modules/team`, migration
+`supabase/migrations/20261005120000_profiles_and_assignees.sql`) is what the rest of the team
+sees. Everyone reads all profiles of their client; each person writes only their own, and the
+user id for a profile edit always comes from the session. Email is never shown next to tasks.
+A task's responsible person is `assigneeId`, a member of the same client (checked in the use
+case and by a composite foreign key to `team_members`); the old free-text assignee is gone.
+Task screens receive `people` (`Person[]`) and resolve names from it.
+
 ### Personal notes
 
 "Mis notas" (`src/modules/personal`, migration

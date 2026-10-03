@@ -16,7 +16,7 @@ function makeTask(overrides: Partial<DevTask> = {}): DevTask {
     title: "Tarea",
     status: "in_review",
     priority: "high",
-    assignee: "Ana",
+    assigneeId: "11111111-1111-1111-1111-111111111111",
     dueDate: "2026-10-10",
     notes: "# Notas",
     createdBy: "Owner",
@@ -45,7 +45,7 @@ test("save maps the task to the snake_case dev_tasks row and reads it back uncha
       title: "Tarea",
       status: "in_review",
       priority: "high",
-      assignee: "Ana",
+      assignee_id: "11111111-1111-1111-1111-111111111111",
       due_date: "2026-10-10",
       notes: "# Notas",
       created_by: "Owner",
@@ -59,7 +59,7 @@ test("save maps the task to the snake_case dev_tasks row and reads it back uncha
 test("an unassigned task with no deadline round-trips its nulls", async () => {
   const fake = new FakeSupabaseClient();
   const repo = makeRepo(fake);
-  const task = makeTask({ assignee: null, dueDate: null });
+  const task = makeTask({ assigneeId: null, dueDate: null });
 
   await repo.save(task);
 

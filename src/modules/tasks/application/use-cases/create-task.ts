@@ -2,9 +2,10 @@ import { err, ok, type Result } from "@/shared/result";
 import type { Scope } from "@/shared/scope";
 import type { Clock } from "@/shared/application/ports/clock";
 import type { IdGenerator } from "@/shared/application/ports/id-generator";
+import type { AssigneeDirectory } from "@/modules/tasks/application/ports/assignee-directory";
 import type { DevTaskRepository } from "@/modules/tasks/application/ports/dev-task-repository";
 import {
-  normalizeAssignee,
+  normalizeAssigneeId,
   normalizeDueDate,
   type DevTask,
   type TaskPriority,
@@ -16,16 +17,18 @@ export interface CreateTaskInput {
   title: string;
   status?: TaskStatus;
   priority?: TaskPriority;
-  assignee?: string | null;
+  /** User id of a team member of this client, or empty/null for unassigned. */
+  assigneeId?: string | null;
   dueDate?: string | null;
   notes?: string;
   createdBy: string;
 }
 
-export type CreateTaskError = { kind: "title_required" } | { kind: "invalid_due_date" };
+export type CreateTaskError = { kind: "title_required" } | { kind: "invalid_due_date" } | { kind: "assignee_not_member" };
 
 export interface CreateTaskDependencies {
   tasks: DevTaskRepository;
+  assignees: AssigneeDirectory;
   clock: Clock;
   ids: IdGenerator;
 }
@@ -42,6 +45,11 @@ export function createCreateTask(deps: CreateTaskDependencies) {
       return err({ kind: "invalid_due_date" });
     }
 
+    const assigneeId = normalizeAssigneeId(input.assigneeId);
+    if (assigneeId !== null && !(await deps.assignees.isMember(input.scope.clientId, assigneeId))) {
+      return err({ kind: "assignee_not_member" });
+    }
+
     const now = deps.clock.now();
     const task: DevTask = {
       id: deps.ids.next(),
@@ -50,7 +58,7 @@ export function createCreateTask(deps: CreateTaskDependencies) {
       title,
       status: input.status ?? "todo",
       priority: input.priority ?? "medium",
-      assignee: normalizeAssignee(input.assignee),
+      assigneeId,
       dueDate,
       notes: input.notes ?? "",
       createdBy: input.createdBy,

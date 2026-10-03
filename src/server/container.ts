@@ -36,6 +36,7 @@ import type { ReviewDecisionRepository } from "@/modules/review/application/port
 import type { ResultSnapshotRepository } from "@/modules/results/application/ports/result-snapshot-repository";
 import type { DevTaskRepository } from "@/modules/tasks/application/ports/dev-task-repository";
 import type { TeamRepository } from "@/modules/team/application/ports/team-repository";
+import type { ProfileRepository } from "@/modules/team/application/ports/profile-repository";
 import type { PersonalItemRepository } from "@/modules/personal/application/ports/personal-item-repository";
 import type { Client } from "@/modules/clients/domain/client";
 import type { Brand } from "@/modules/clients/domain/brand";
@@ -64,6 +65,8 @@ import { SupabaseDevTaskRepository } from "@/modules/tasks/infrastructure/supaba
 import { SupabaseTeamRepository } from "@/modules/team/infrastructure/supabase-team-repository";
 import { InMemoryTeamRepository } from "@/modules/team/infrastructure/in-memory-team-repository";
 import { NodeInvitationTokens } from "@/modules/team/infrastructure/node-invitation-tokens";
+import { SupabaseProfileRepository } from "@/modules/team/infrastructure/supabase-profile-repository";
+import { InMemoryProfileRepository } from "@/modules/team/infrastructure/in-memory-profile-repository";
 import { SupabasePersonalItemRepository } from "@/modules/personal/infrastructure/supabase-personal-item-repository";
 import { InMemoryPersonalItemRepository } from "@/modules/personal/infrastructure/in-memory-personal-item-repository";
 import { GeminiProposalGenerator } from "@/modules/strategy/infrastructure/gemini-proposal-generator";
@@ -123,6 +126,11 @@ import {
   type DeletePersonalItemInput,
   type UpdatePersonalItemInput,
 } from "@/modules/personal/application/use-cases/personal-item-use-cases";
+import {
+  createListPeople,
+  createUpdateProfile,
+  type UpdateProfileInput,
+} from "@/modules/team/application/use-cases/people";
 import {
   createAcceptInvitation,
   createCancelInvitation,
@@ -195,6 +203,18 @@ function buildRepositories(): Repositories {
 
 const { clients, brands, audiences, briefs, proposals, reviewDecisions, resultSnapshots, devTasks } = buildRepositories();
 
+/** Profiles live next to membership: Supabase when configured, in memory otherwise. */
+const profiles: ProfileRepository =
+  resolveRepositoryBackend(process.env) === "supabase"
+    ? new SupabaseProfileRepository(createSupabaseServerClient)
+    : new InMemoryProfileRepository();
+
+/** Only members of the client can be assigned a task. */
+const assignees = {
+  isMember: async (clientId: string, userId: string) =>
+    (await team.listMembers(clientId)).some((member) => member.userId === userId),
+};
+
 /**
  * Personal tasks and notes are private per signed-in user and only make sense
  * with real accounts, so, like the team, the only real adapter is Supabase;
@@ -230,6 +250,7 @@ export const repositories = {
   resultSnapshots,
   devTasks,
   personalItems,
+  profiles,
 };
 
 /** True once a request has been served without a configured Gemini key. UI code can use this to show the "unavailable" state up front. */
@@ -302,13 +323,16 @@ const listReviewHistoryUseCase = createListReviewHistory({ reviewDecisions });
 const recordResultSnapshotUseCase = createRecordResultSnapshot({ proposals, resultSnapshots, clock, ids });
 const listResultSnapshotsUseCase = createListResultSnapshots({ resultSnapshots });
 
-const createTaskUseCase = createCreateTask({ tasks: devTasks, clock, ids });
-const updateTaskUseCase = createUpdateTask({ tasks: devTasks, clock });
+const createTaskUseCase = createCreateTask({ tasks: devTasks, assignees, clock, ids });
+const updateTaskUseCase = createUpdateTask({ tasks: devTasks, assignees, clock });
 const deleteTaskUseCase = createDeleteTask({ tasks: devTasks });
 
 const createPersonalItemUseCase = createCreatePersonalItem({ items: personalItems, clock, ids });
 const updatePersonalItemUseCase = createUpdatePersonalItem({ items: personalItems, clock });
 const deletePersonalItemUseCase = createDeletePersonalItem({ items: personalItems });
+
+const listPeopleUseCase = createListPeople({ team, profiles });
+const updateProfileUseCase = createUpdateProfile({ profiles, clock });
 
 const invitationTokens = new NodeInvitationTokens();
 const teamDeps = { team, tokens: invitationTokens, clock, ids };
@@ -417,4 +441,13 @@ export function updatePersonalItem(input: UpdatePersonalItemInput) {
 
 export function deletePersonalItem(input: DeletePersonalItemInput) {
   return withSeed(() => deletePersonalItemUseCase(input));
+}
+
+/** Everyone on the team as task screens need them: name and job title, no email. */
+export function listPeople(input: { clientId: string }) {
+  return withSeed(() => listPeopleUseCase(input));
+}
+
+export function updateProfile(input: UpdateProfileInput) {
+  return withSeed(() => updateProfileUseCase(input));
 }

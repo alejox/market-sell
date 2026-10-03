@@ -5,8 +5,7 @@ import {
   groupTasksByStatus,
   isIsoDate,
   isOverdue,
-  knownAssignees,
-  normalizeAssignee,
+  normalizeAssigneeId,
   normalizeDueDate,
   summarizeTasks,
   type DevTask,
@@ -20,7 +19,7 @@ function makeTask(overrides: Partial<DevTask> = {}): DevTask {
     title: "Tarea",
     status: "todo",
     priority: "medium",
-    assignee: null,
+    assigneeId: null,
     dueDate: null,
     notes: "",
     createdBy: "Owner",
@@ -29,13 +28,6 @@ function makeTask(overrides: Partial<DevTask> = {}): DevTask {
     ...overrides,
   };
 }
-
-test("normalizeAssignee trims, collapses whitespace and maps blank to null", () => {
-  assert.equal(normalizeAssignee("  Ana   María "), "Ana María");
-  assert.equal(normalizeAssignee("   "), null);
-  assert.equal(normalizeAssignee(null), null);
-  assert.equal(normalizeAssignee(undefined), null);
-});
 
 test("isIsoDate accepts real calendar dates only", () => {
   assert.equal(isIsoDate("2026-02-28"), true);
@@ -90,12 +82,12 @@ test("isOverdue ignores done tasks and tasks without a deadline", () => {
 test("summarizeTasks counts statuses, overdue, unassigned and open work per assignee", () => {
   const summary = summarizeTasks(
     [
-      makeTask({ id: "1", assignee: "Ana", status: "in_progress", dueDate: "2026-09-30" }),
-      makeTask({ id: "2", assignee: "Ana", status: "todo" }),
-      makeTask({ id: "3", assignee: "Luis", status: "done", dueDate: "2026-09-01" }),
-      makeTask({ id: "4", assignee: null, status: "in_review" }),
-      makeTask({ id: "5", assignee: "Luis", status: "todo" }),
-      makeTask({ id: "6", assignee: "Zoe", status: "todo" }),
+      makeTask({ id: "1", assigneeId: "u-ana", status: "in_progress", dueDate: "2026-09-30" }),
+      makeTask({ id: "2", assigneeId: "u-ana", status: "todo" }),
+      makeTask({ id: "3", assigneeId: "u-luis", status: "done", dueDate: "2026-09-01" }),
+      makeTask({ id: "4", assigneeId: null, status: "in_review" }),
+      makeTask({ id: "5", assigneeId: "u-luis", status: "todo" }),
+      makeTask({ id: "6", assigneeId: "u-zoe", status: "todo" }),
     ],
     "2026-10-02",
   );
@@ -105,19 +97,15 @@ test("summarizeTasks counts statuses, overdue, unassigned and open work per assi
   assert.equal(summary.overdue, 1);
   assert.equal(summary.unassigned, 1);
   assert.deepEqual(summary.openByAssignee, [
-    { assignee: "Ana", open: 2 },
-    { assignee: "Luis", open: 1 },
-    { assignee: "Zoe", open: 1 },
+    { assigneeId: "u-ana", open: 2 },
+    { assigneeId: "u-luis", open: 1 },
+    { assigneeId: "u-zoe", open: 1 },
   ]);
 });
 
-test("knownAssignees de-duplicates case-insensitively and sorts", () => {
-  const names = knownAssignees([
-    makeTask({ assignee: "luis" }),
-    makeTask({ assignee: "Ana" }),
-    makeTask({ assignee: "Luis" }),
-    makeTask({ assignee: null }),
-  ]);
-
-  assert.deepEqual(names, ["Ana", "luis"]);
+test("normalizeAssigneeId trims and treats empty as unassigned", () => {
+  assert.equal(normalizeAssigneeId("  u-ana "), "u-ana");
+  assert.equal(normalizeAssigneeId("   "), null);
+  assert.equal(normalizeAssigneeId(null), null);
+  assert.equal(normalizeAssigneeId(undefined), null);
 });

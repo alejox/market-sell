@@ -14,7 +14,7 @@ interface DevTaskRow {
   title: string;
   status: TaskStatus;
   priority: TaskPriority;
-  assignee: string | null;
+  assignee_id: string | null;
   due_date: string | null;
   notes: string;
   created_by: string;
@@ -30,7 +30,7 @@ function fromRow(row: DevTaskRow): DevTask {
     title: row.title,
     status: row.status,
     priority: row.priority,
-    assignee: row.assignee,
+    assigneeId: row.assignee_id,
     dueDate: row.due_date,
     notes: row.notes,
     createdBy: row.created_by,
@@ -47,7 +47,7 @@ function toRow(task: DevTask): DevTaskRow {
     title: task.title,
     status: task.status,
     priority: task.priority,
-    assignee: task.assignee,
+    assignee_id: task.assigneeId,
     due_date: task.dueDate,
     notes: task.notes,
     created_by: task.createdBy,

@@ -1,16 +1,16 @@
 import { notFound } from "next/navigation";
-import { ensureWorkspaceSeeded, repositories } from "@/server/container";
+import { ensureWorkspaceSeeded, listPeople, repositories } from "@/server/container";
 import { APP_NAME } from "@/components/app-name";
 import { Card } from "@/components/atoms/Card";
 import { NewTaskForm } from "@/components/organisms/NewTaskForm";
 import { SignOutButton } from "@/components/organisms/SignOutButton";
 import { TaskBoard } from "@/components/organisms/TaskBoard";
-import { TaskFilters, UNASSIGNED_FILTER, type TaskView } from "@/components/organisms/TaskFilters";
+import { MINE_FILTER, TaskFilters, UNASSIGNED_FILTER, type TaskView } from "@/components/organisms/TaskFilters";
 import { TaskSummary } from "@/components/organisms/TaskSummary";
 import { TaskTable } from "@/components/organisms/TaskTable";
-import { knownAssignees, summarizeTasks } from "@/modules/tasks/domain/dev-task";
+import { summarizeTasks } from "@/modules/tasks/domain/dev-task";
 import { localIsoDate } from "@/shared/local-date";
-import { requireOwner } from "@/shared/infrastructure/supabase/owner-auth";
+import { requireWorkspaceUser } from "@/shared/infrastructure/supabase/owner-auth";
 import { changeTaskStatusAction, createTaskAction } from "./actions";
 
 export const metadata = { title: "Organización — Devtecia" };
@@ -22,7 +22,7 @@ export default async function TasksPage({
   params: Promise<{ clientId: string; brandId: string }>;
   searchParams: Promise<{ vista?: string; asignado?: string }>;
 }) {
-  await requireOwner();
+  const user = await requireWorkspaceUser();
   await ensureWorkspaceSeeded();
 
   const { clientId, brandId } = await params;
@@ -39,15 +39,22 @@ export default async function TasksPage({
   const tasksPath = `${basePath}/organizacion`;
   const today = localIsoDate(new Date());
 
-  const allTasks = await repositories.devTasks.list(scope);
-  const assignees = knownAssignees(allTasks);
+  const [allTasks, people] = await Promise.all([repositories.devTasks.list(scope), listPeople({ clientId })]);
+  const peopleById = Object.fromEntries(people.map((person) => [person.userId, person]));
+  const withTasks = new Set(allTasks.map((task) => task.assigneeId));
+  const filterPeople = people.filter((person) => withTasks.has(person.userId));
+
+  // The filter is a user id, "mias" (the signed-in person) or "sin-asignar"; anything else is ignored.
   const assigneeFilter =
-    asignado === UNASSIGNED_FILTER || (asignado !== undefined && assignees.includes(asignado)) ? (asignado ?? null) : null;
+    asignado === UNASSIGNED_FILTER || asignado === MINE_FILTER || (asignado !== undefined && peopleById[asignado] !== undefined)
+      ? (asignado ?? null)
+      : null;
+  const filterId = assigneeFilter === MINE_FILTER ? user.id : assigneeFilter;
 
   const visibleTasks =
-    assigneeFilter === null
+    filterId === null
       ? allTasks
-      : allTasks.filter((task) => (assigneeFilter === UNASSIGNED_FILTER ? task.assignee === null : task.assignee === assigneeFilter));
+      : allTasks.filter((task) => (filterId === UNASSIGNED_FILTER ? task.assigneeId === null : task.assigneeId === filterId));
 
   const summary = summarizeTasks(allTasks, today);
   const changeStatusAction = changeTaskStatusAction.bind(null, scope);
@@ -67,7 +74,7 @@ export default async function TasksPage({
         </div>
       </header>
 
-      <TaskSummary summary={summary} />
+      <TaskSummary summary={summary} people={peopleById} />
 
       <details className="group rounded-2xl border border-border bg-surface-raised p-5 sm:p-6" open={allTasks.length === 0}>
         <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-on-surface [&::-webkit-details-marker]:hidden">
@@ -75,7 +82,7 @@ export default async function TasksPage({
           <span aria-hidden="true" className="text-2xl group-open:rotate-45">+</span>
         </summary>
         <div className="mt-5">
-          <NewTaskForm action={createTaskAction.bind(null, scope)} assignees={assignees} />
+          <NewTaskForm action={createTaskAction.bind(null, scope)} people={people} />
         </div>
       </details>
 
@@ -85,8 +92,8 @@ export default async function TasksPage({
           basePath={tasksPath}
           view={view}
           assignee={assigneeFilter}
-          assignees={assignees}
-          hasUnassigned={allTasks.some((task) => task.assignee === null)}
+          assignees={filterPeople}
+          hasUnassigned={allTasks.some((task) => task.assigneeId === null)}
         />
 
         {allTasks.length === 0 ? (
@@ -98,9 +105,9 @@ export default async function TasksPage({
             <p className="text-sm text-muted-on">No hay tareas para este responsable.</p>
           </Card>
         ) : view === "tabla" ? (
-          <TaskTable tasks={visibleTasks} basePath={tasksPath} today={today} changeStatusAction={changeStatusAction} />
+          <TaskTable tasks={visibleTasks} basePath={tasksPath} today={today} people={peopleById} changeStatusAction={changeStatusAction} />
         ) : (
-          <TaskBoard tasks={visibleTasks} basePath={tasksPath} today={today} changeStatusAction={changeStatusAction} />
+          <TaskBoard tasks={visibleTasks} basePath={tasksPath} today={today} people={peopleById} changeStatusAction={changeStatusAction} />
         )}
       </section>
     </main>

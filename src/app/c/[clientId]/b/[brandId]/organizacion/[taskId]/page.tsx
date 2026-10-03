@@ -1,14 +1,15 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ensureWorkspaceSeeded, repositories } from "@/server/container";
+import { ensureWorkspaceSeeded, listPeople, repositories } from "@/server/container";
 import { Badge } from "@/components/atoms/Badge";
 import { DeleteTaskForm } from "@/components/organisms/DeleteTaskForm";
 import { SignOutButton } from "@/components/organisms/SignOutButton";
 import { TaskEditor } from "@/components/organisms/TaskEditor";
 import { TASK_STATUS_LABELS, TASK_STATUS_TONES } from "@/components/labels";
-import { knownAssignees } from "@/modules/tasks/domain/dev-task";
 import { requireOwner } from "@/shared/infrastructure/supabase/owner-auth";
 import { deleteTaskAction, updateTaskAction } from "../actions";
+
+export const metadata = { title: "Tarea — Devtecia" };
 
 export default async function TaskPage({
   params,
@@ -26,7 +27,7 @@ export default async function TaskPage({
     notFound();
   }
 
-  const assignees = knownAssignees(await repositories.devTasks.list(scope));
+  const people = await listPeople({ clientId });
   const tasksPath = `/c/${clientId}/b/${brandId}/organizacion`;
 
   return (
@@ -47,7 +48,7 @@ export default async function TaskPage({
         </div>
       </header>
 
-      <TaskEditor task={task} assignees={assignees} action={updateTaskAction.bind(null, scope, task.id)} />
+      <TaskEditor task={task} people={people} action={updateTaskAction.bind(null, scope, task.id)} />
 
       <section aria-label="Zona de peligro" className="border-t border-border pt-6">
         <DeleteTaskForm action={deleteTaskAction.bind(null, scope, task.id)} />
