@@ -12,6 +12,8 @@ import type { InvalidTransitionError } from "@/modules/review/domain/proposal-li
 export interface ApproveProposalInput {
   scope: Scope;
   proposalId: string;
+  /** Who is approving: the signed-in person (owner or invited admin), recorded as the approver. Never inferred. */
+  reviewer: string;
 }
 
 export interface ProposalNotFoundError {
@@ -25,8 +27,6 @@ export interface ApproveProposalDependencies {
   reviewDecisions: ReviewDecisionRepository;
   clock: Clock;
   ids: IdGenerator;
-  /** The single local owner identity (OWNER_NAME env, wired by the container) — approval is never inferred. */
-  reviewer: string;
 }
 
 /**
@@ -43,7 +43,7 @@ export function createApproveProposal(deps: ApproveProposalDependencies) {
     }
 
     const now = deps.clock.now();
-    const transitioned = approve(current, deps.reviewer, now);
+    const transitioned = approve(current, input.reviewer, now);
     if (!transitioned.ok) {
       return err(transitioned.error);
     }
@@ -58,7 +58,7 @@ export function createApproveProposal(deps: ApproveProposalDependencies) {
       proposalThreadId: current.proposalThreadId,
       version: current.version,
       decision: "approved",
-      reviewer: deps.reviewer,
+      reviewer: input.reviewer,
       feedback: null,
       decidedAt: now,
     };

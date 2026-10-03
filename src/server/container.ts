@@ -35,6 +35,7 @@ import type { ProposalRepository } from "@/modules/strategy/application/ports/pr
 import type { ReviewDecisionRepository } from "@/modules/review/application/ports/review-decision-repository";
 import type { ResultSnapshotRepository } from "@/modules/results/application/ports/result-snapshot-repository";
 import type { DevTaskRepository } from "@/modules/tasks/application/ports/dev-task-repository";
+import type { TeamRepository } from "@/modules/team/application/ports/team-repository";
 import type { Client } from "@/modules/clients/domain/client";
 import type { Brand } from "@/modules/clients/domain/brand";
 import type { Audience } from "@/modules/strategy/domain/audience";
@@ -59,6 +60,9 @@ import { SupabaseProposalRepository } from "@/modules/strategy/infrastructure/su
 import { SupabaseReviewDecisionRepository } from "@/modules/review/infrastructure/supabase-review-decision-repository";
 import { SupabaseResultSnapshotRepository } from "@/modules/results/infrastructure/supabase-result-snapshot-repository";
 import { SupabaseDevTaskRepository } from "@/modules/tasks/infrastructure/supabase-dev-task-repository";
+import { SupabaseTeamRepository } from "@/modules/team/infrastructure/supabase-team-repository";
+import { InMemoryTeamRepository } from "@/modules/team/infrastructure/in-memory-team-repository";
+import { NodeInvitationTokens } from "@/modules/team/infrastructure/node-invitation-tokens";
 import { GeminiProposalGenerator } from "@/modules/strategy/infrastructure/gemini-proposal-generator";
 import {
   createGenerateProposal,
@@ -108,6 +112,13 @@ import {
 import { createCreateTask, type CreateTaskInput } from "@/modules/tasks/application/use-cases/create-task";
 import { createUpdateTask, type UpdateTaskInput } from "@/modules/tasks/application/use-cases/update-task";
 import { createDeleteTask, type DeleteTaskInput } from "@/modules/tasks/application/use-cases/delete-task";
+import {
+  createAcceptInvitation,
+  createCancelInvitation,
+  createCheckInvitation,
+  createCreateInvitation,
+  createListTeam,
+} from "@/modules/team/application/use-cases/invitations";
 
 /**
  * Every repository the app depends on, plus `insertIfAbsent` (see
@@ -173,13 +184,20 @@ function buildRepositories(): Repositories {
 
 const { clients, brands, audiences, briefs, proposals, reviewDecisions, resultSnapshots, devTasks } = buildRepositories();
 
+/**
+ * Team membership and invitations create real Supabase Auth accounts, so the
+ * only real adapter is Supabase. Without it (local JSON development) an
+ * in-memory stand-in keeps the pages renderable; nothing is persisted.
+ */
+const team: TeamRepository =
+  resolveRepositoryBackend(process.env) === "supabase"
+    ? new SupabaseTeamRepository(createSupabaseServerClient)
+    : new InMemoryTeamRepository();
+
 /** Behind the ProposalGenerator port — swapping providers means changing only this line. */
 const generator = new GeminiProposalGenerator();
 const clock = new SystemClock();
 const ids = new UuidIdGenerator();
-
-/** The single local owner identity for this release. Recorded as the approver on every approval. */
-const OWNER_NAME = process.env.OWNER_NAME || "Owner";
 
 export const repositories = {
   clients,
@@ -255,7 +273,7 @@ const updateAudienceUseCase = createUpdateAudience({ audiences, clock });
 const updateCampaignBriefUseCase = createUpdateCampaignBrief({ briefs, clock });
 
 const submitForReviewUseCase = createSubmitForReview({ proposals, clock });
-const approveProposalUseCase = createApproveProposal({ proposals, reviewDecisions, clock, ids, reviewer: OWNER_NAME });
+const approveProposalUseCase = createApproveProposal({ proposals, reviewDecisions, clock, ids });
 const archiveProposalUseCase = createArchiveProposal({ proposals, clock });
 const listReviewHistoryUseCase = createListReviewHistory({ reviewDecisions });
 
@@ -266,10 +284,13 @@ const createTaskUseCase = createCreateTask({ tasks: devTasks, clock, ids });
 const updateTaskUseCase = createUpdateTask({ tasks: devTasks, clock });
 const deleteTaskUseCase = createDeleteTask({ tasks: devTasks });
 
-/** The owner identity Server Actions should record as the approver / a manual result's `recordedBy`. */
-export function currentOwnerName(): string {
-  return OWNER_NAME;
-}
+const invitationTokens = new NodeInvitationTokens();
+const teamDeps = { team, tokens: invitationTokens, clock, ids };
+const createInvitationUseCase = createCreateInvitation(teamDeps);
+const listTeamUseCase = createListTeam(teamDeps);
+const cancelInvitationUseCase = createCancelInvitation(teamDeps);
+const checkInvitationUseCase = createCheckInvitation(teamDeps);
+const acceptInvitationUseCase = createAcceptInvitation(teamDeps);
 
 async function withSeed<T>(run: () => Promise<T>): Promise<T> {
   await ensureWorkspaceSeeded();
@@ -337,4 +358,25 @@ export function updateTask(input: UpdateTaskInput) {
 
 export function deleteTask(input: DeleteTaskInput) {
   return withSeed(() => deleteTaskUseCase(input));
+}
+
+export function createInvitation(input: { clientId: string }) {
+  return withSeed(() => createInvitationUseCase(input));
+}
+
+export function listTeam(input: { clientId: string }) {
+  return withSeed(() => listTeamUseCase(input));
+}
+
+export function cancelInvitation(input: { clientId: string; invitationId: string }) {
+  return cancelInvitationUseCase(input);
+}
+
+/** Public: callable before sign-in, answers only whether the link would work right now. */
+export function checkInvitation(input: { token: string }) {
+  return checkInvitationUseCase(input);
+}
+
+export function acceptInvitation(input: { token: string }) {
+  return acceptInvitationUseCase(input);
 }

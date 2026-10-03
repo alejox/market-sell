@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import * as container from "@/server/container";
 import type { ActionState } from "@/components/action-state";
-import { requireOwner } from "@/shared/infrastructure/supabase/owner-auth";
+import { currentUserName, requireOwner } from "@/shared/infrastructure/supabase/owner-auth";
 import { isTaskPriority, isTaskStatus, type TaskPriority, type TaskStatus } from "@/modules/tasks/domain/dev-task";
 import type { CreateTaskError } from "@/modules/tasks/application/use-cases/create-task";
 import type { UpdateTaskError } from "@/modules/tasks/application/use-cases/update-task";
@@ -50,7 +50,7 @@ export async function createTaskAction(scope: Scope, _prevState: ActionState, fo
     priority: priorityField(formData),
     assignee: text(formData, "assignee"),
     dueDate: text(formData, "dueDate"),
-    createdBy: container.currentOwnerName(),
+    createdBy: await currentUserName(),
   });
 
   if (!result.ok) {

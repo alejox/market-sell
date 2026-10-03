@@ -81,6 +81,13 @@ export class SupabaseClientRepository implements ClientRepository {
    */
   async insertIfAbsent(client: Client): Promise<boolean> {
     const supabase = await this.getClient();
+    // Team members can read the client but are not its owner: when it already
+    // exists there is nothing to insert, so no owner verification is needed.
+    const existing = unwrapMaybe<ClientRow>(
+      "clients.insertIfAbsent.exists",
+      await supabase.from(TABLE).select("id").eq("id", client.id).maybeSingle(),
+    );
+    if (existing) return false;
     const ownerId = await verifiedOwnerId(supabase);
     const result = await supabase
       .from(TABLE)

@@ -6,7 +6,7 @@ import { redirect } from "next/navigation";
 import * as container from "@/server/container";
 import type { GenerationError } from "@/modules/strategy/application/ports/proposal-generator";
 import type { ActionState } from "@/components/action-state";
-import { requireOwner } from "@/shared/infrastructure/supabase/owner-auth";
+import { currentUserName, requireOwner } from "@/shared/infrastructure/supabase/owner-auth";
 
 export type { ActionState } from "@/components/action-state";
 
@@ -211,7 +211,7 @@ export async function reviseProposalAction(
     scope,
     proposalId,
     feedback,
-    reviewer: container.currentOwnerName(),
+    reviewer: await currentUserName(),
   });
 
   if (!result.ok) {
@@ -283,7 +283,8 @@ export async function approveProposalAction(
   _formData: FormData,
 ): Promise<ActionState> {
   await requireOwner();
-  const result = await container.approveProposal({ scope, proposalId });
+  const reviewer = await currentUserName();
+  const result = await container.approveProposal({ scope, proposalId, reviewer });
 
   if (!result.ok) {
     return { status: "error", message: "No se pudo aprobar la propuesta." };
@@ -291,7 +292,7 @@ export async function approveProposalAction(
 
   revalidatePath(`/c/${scope.clientId}/b/${scope.brandId}`);
   revalidatePath(`/c/${scope.clientId}/b/${scope.brandId}/proposals/${proposalId}`);
-  return { status: "success", message: `Propuesta aprobada por ${container.currentOwnerName()}.` };
+  return { status: "success", message: `Propuesta aprobada por ${reviewer}.` };
 }
 
 export async function archiveProposalAction(
@@ -346,7 +347,7 @@ export async function recordResultSnapshotAction(
       metrics,
       notes,
       source,
-      recordedBy: container.currentOwnerName(),
+      recordedBy: await currentUserName(),
     });
 
     if (!result.ok) {

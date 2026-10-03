@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/shared/infrastructure/supabase/server";
-import { isAllowedOwner } from "@/shared/infrastructure/supabase/owner-policy";
+import { workspaceUserFor } from "@/shared/infrastructure/supabase/owner-auth";
 
 export type LoginState = { message: string } | null;
 
@@ -17,8 +17,7 @@ export async function signInOwner(_previous: LoginState, formData: FormData): Pr
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) return { message: "No se pudo iniciar sesión. Revisá tus datos e intentá de nuevo." };
 
-    const { data, error: claimsError } = await supabase.auth.getClaims();
-    if (claimsError || !isAllowedOwner(data?.claims, process.env.SUPABASE_OWNER_ID)) {
+    if (!(await workspaceUserFor(supabase))) {
       await supabase.auth.signOut();
       return { message: "Esta cuenta no tiene acceso al espacio de trabajo." };
     }

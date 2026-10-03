@@ -52,10 +52,9 @@ test("approveProposal records the approver, timestamp, and exact version", async
     reviewDecisions,
     clock: new FixedClock(),
     ids: new SequentialIds(),
-    reviewer: "Ana",
   });
 
-  const result = await approveProposal({ scope: SCOPE, proposalId: "proposal-1" });
+  const result = await approveProposal({ scope: SCOPE, proposalId: "proposal-1", reviewer: "Ana" });
 
   assert.equal(result.ok, true);
   if (!result.ok) return;
@@ -81,10 +80,9 @@ test("approveProposal rejects a proposal that is not in_review", async () => {
     reviewDecisions,
     clock: new FixedClock(),
     ids: new SequentialIds(),
-    reviewer: "Ana",
   });
 
-  const result = await approveProposal({ scope: SCOPE, proposalId: "proposal-1" });
+  const result = await approveProposal({ scope: SCOPE, proposalId: "proposal-1", reviewer: "Ana" });
 
   assert.deepEqual(result, { ok: false, error: { kind: "invalid_transition", from: "draft", action: "approve" } });
   assert.deepEqual(await reviewDecisions.list(SCOPE), []);
